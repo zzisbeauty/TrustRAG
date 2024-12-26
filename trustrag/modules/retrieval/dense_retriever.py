@@ -9,7 +9,7 @@
 """
 import gc
 import os
-from typing import List
+from typing import List,Dict,Union
 
 import faiss
 import numpy as np
@@ -82,57 +82,116 @@ class DenseRetriever(BaseRetriever):
         self.batch_size = config.batch_size
 
     def load_index(self, index_path: str = None):
-        """Load the FAISS index from the specified path."""
+        """
+        Load the FAISS index from the specified path.
+
+        Args:
+            index_path (str, optional): The path to load the index from. Defaults to self.index_path.
+        """
         if index_path is None:
             index_path = self.index_path
+        # Load the document embeddings and texts from the saved file
         data = np.load(os.path.join(index_path, 'document.vecstore.npz'), allow_pickle=True)
         self.documents, self.embeddings = data['documents'].tolist(), data['embeddings'].tolist()
+        # Load the FAISS index
         self.index = faiss.read_index(os.path.join(index_path, 'fassis.index'))
         print("Index loaded successfully from", index_path)
-        del data
-        gc.collect()
+        del data  # Free up memory
+        gc.collect()  # Perform garbage collection
 
     def save_index(self, index_path: str = None):
-        """Save the FAISS index to the specified path."""
+        """
+        Save the FAISS index to the specified path.
+
+        Args:
+            index_path (str, optional): The path to save the index to. Defaults to self.index_path.
+        """
         if self.index and self.embeddings and self.documents:
             if index_path is None:
                 index_path = self.index_path
+            # Create the directory if it doesn't exist
             if not os.path.exists(index_path):
                 os.makedirs(index_path, exist_ok=True)
                 print(f"Index saving to：{index_path}")
+            # Save the document embeddings and texts
             np.savez(
                 os.path.join(index_path, 'document.vecstore'),
                 embeddings=self.embeddings,
                 documents=self.documents
             )
+            # Save the FAISS index
             faiss.write_index(self.index, os.path.join(index_path, 'fassis.index'))
             print("Index saved successfully to", index_path)
 
     def get_embedding(self, sentences: List[str]) -> np.ndarray:
-        """Generate embeddings for a list of sentences."""
-        return self.model.encode(sentences=sentences, batch_size=self.batch_size)  # Using configured batch_size
+        """
+        Generate embeddings for a list of sentences.
 
+        Args:
+            sentences (List[str]): List of sentences to generate embeddings for.
+
+        Returns:
+            np.ndarray: A numpy array of embeddings.
+        """
+        # Using configured batch_size
+        return self.model.encode(sentences=sentences, batch_size=self.batch_size)
     def add_texts(self, texts: List[str]):
-        """Add multiple texts to the index."""
+        """
+        Add multiple texts to the index.
+
+        Args:
+            texts (List[str]): List of texts to add to the index.
+        """
         embeddings = self.get_embedding(texts)
-        self.index.add(embeddings)
-        self.documents.extend(texts)
-        self.embeddings.extend(embeddings)
-        self.num_documents += len(texts)
+        # Convert embeddings to float32 (required by FAISS)
+        # faiss issue:https://github.com/facebookresearch/faiss/issues/1732
+        self.index.add(embeddings.astype("float32"))
+        self.documents.extend(texts)  # Add texts to the documents list
+        self.embeddings.extend(embeddings)  # Add embeddings to the embeddings list
+        self.num_documents += len(texts)  # Update the document count
+
 
     def add_text(self, text: str):
-        """Add a single text to the index."""
+        """
+        Add a single text to the index.
+
+        Args:
+            text (str): The text to add to the index.
+        """
         self.add_texts([text])
 
     def build_from_texts(self, corpus: List[str]):
-        """Process and index a list of texts in batches."""
+        """
+        Process and index a list of texts in batches.
+
+        Args:
+            corpus (List[str]): List of texts to index.
+        """
         if not corpus:
             return
 
+        # Process texts in batches
         for i in tqdm(range(0, len(corpus), self.batch_size), desc="Building index"):
             batch = corpus[i:i + self.batch_size]
             self.add_texts(batch)
 
-    def retrieve(self, query: str = None, top_k: int = 5):
-        D, I = self.index.search(self.get_embedding([query]), top_k)
+
+    def retrieve(self, query: str = None, top_k: int = 5) -> List[Dict[str, Union[str, float]]]:
+        """
+        Retrieve the top_k documents relevant to the query.
+
+        Args:
+            query (str, optional): The query string. Defaults to None.
+            top_k (int, optional): The number of top documents to retrieve. Defaults to 5.
+
+        Returns:
+            List[Dict[str, Union[str, float]]]: A list of dictionaries containing the retrieved documents and their scores.
+        """
+        # generate query embedding
+        query_embedding = self.get_embedding([query]).astype("float32")
+        # search the index
+        D, I = self.index.search(query_embedding, top_k)
+        # free up memory
+        del query_embedding
+        # Return the retrieved documents with their scores
         return [{'text': self.documents[idx], 'score': score} for idx, score in zip(I[0], D[0])]

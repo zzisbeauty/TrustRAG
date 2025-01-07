@@ -25,7 +25,8 @@ judge_config = BgeJudgerConfig(
 bge_judger = BgeJudger(judge_config)
 
 judger_config = OpenaiJudgerConfig(
-    api_url="https://aicloud.oneainexus.cn:30013/inference/aicloud-yanqiang/gomatellm/"
+    # api_url="https://aicloud.oneainexus.cn:30013/inference/aicloud-yanqiang/gomatellm/"
+    api_url="https://http://10.208.63.29:8888/"
 )
 openai_judger = OpenaiJudger(judger_config)
 

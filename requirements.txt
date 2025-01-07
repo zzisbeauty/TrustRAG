@@ -36,7 +36,7 @@ pdfplumber
 readability
 html_text
 python-docx
-tortoise
+tortoise-orm
 python-magic
 html_text
 readability

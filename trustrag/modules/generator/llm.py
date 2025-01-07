@@ -209,7 +209,7 @@ class InternLMChat(BaseModel):
                                                           trust_remote_code=True).cuda()
 
 
-class GLMChat(BaseModel):
+class GLM3Chat(BaseModel):
     def __init__(self, path: str = '') -> None:
         super().__init__(path)
         self.load_model()
@@ -240,7 +240,7 @@ class GLM4Chat(BaseModel):
         if llm_only:
             prompt = prompt
         else:
-            prompt = PROMPT_TEMPLATE['Qwen_PROMPT_TEMPALTE'].format(system_prompt=SYSTEM_PROMPT, question=prompt,
+            prompt = PROMPT_TEMPLATE['GLM_PROMPT_TEMPALTE'].format(system_prompt=SYSTEM_PROMPT, question=prompt,
                                                                     context=content)
         prompt = prompt.encode("utf-8", 'ignore').decode('utf-8', 'ignore')
         print(prompt)

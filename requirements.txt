@@ -43,7 +43,7 @@ readability
 PyMuPDF
 hanziconv
 PyPDF2
-gradio
+gradio==3.50.2
 loguru
 xgboost
 bm25s
@@ -58,3 +58,5 @@ minio
 bson
 elasticsearch
 pymongo==4.8.0
+zhipuai==2.1.5
+dashscope==1.20.14

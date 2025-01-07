@@ -11,7 +11,7 @@ import os
 
 from trustrag.modules.citation.match_citation import MatchCitation
 from trustrag.modules.document.common_parser import CommonParser
-from trustrag.modules.generator.llm import GLMChat
+from trustrag.modules.generator.llm import GLM4Chat
 from trustrag.modules.reranker.bge_reranker import BgeReranker
 from trustrag.modules.retrieval.dense_retriever import DenseRetriever
 
@@ -28,7 +28,7 @@ class RagApplication():
         self.parser = CommonParser()
         self.retriever = DenseRetriever(self.config.retriever_config)
         self.reranker = BgeReranker(self.config.rerank_config)
-        self.llm = GLMChat(self.config.llm_model_path)
+        self.llm = GLM4Chat(self.config.llm_model_path)
         self.mc = MatchCitation()
 
     def init_vector_store(self):

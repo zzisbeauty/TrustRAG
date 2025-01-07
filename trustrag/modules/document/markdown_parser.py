@@ -18,8 +18,11 @@ from langchain_core.documents.base import Document
 from langchain_text_splitters.markdown import MarkdownHeaderTextSplitter,MarkdownTextSplitter
 from trustrag.modules.document.base import BaseParser
 from trustrag.modules.document.utils import contains_text
-
-class MarkdownParser(BaseParser):
+def get_encoding(file):
+    with open(file, 'rb') as f:
+        tmp = chardet.detect(f.read())
+        return tmp['encoding']
+class MarkdownParser(object):
     """
     Custom Markdown parser for extracting chunks from Markdown files.
     """
@@ -33,21 +36,24 @@ class MarkdownParser(BaseParser):
         """
         self.max_chunk_size = max_chunk_size
 
-    def get_chunks(
+    def parse(
         self,
-        filepath: str,
-        *args,
-        **kwargs,
+        fnm: str,
+        encoding:str="utf-8",
     ) -> typing.List[Document]:
         """
         Extracts chunks of content from a given Markdown file.
         """
-        content = None
-        with open(filepath, "r") as f:
-            content = f.read()
-        if not content:
-            print("Error reading file: " + filepath)
-            return []
+
+        # 如果 fnm 不是字符串（假设是字节流等），则使用 find_codec 找到编码
+        if not isinstance(fnm, str):
+            encoding = get_encoding(fnm) if encoding is None else encoding
+            content = fnm.decode(encoding, errors="ignore")
+        else:
+            # 如果是字符串文件路径，且没有传入 encoding，则自动调用 get_encoding 检测编码
+            encoding = get_encoding(fnm) if encoding is None else encoding
+            with open(fnm, "r", encoding=encoding) as f:
+                content = f.read()
 
         # Define the header patterns to split on (e.g., "# Header 1", "## Header 2", "### Header 3").
         headers_to_split_on = [
@@ -83,7 +89,7 @@ class MarkdownParser(BaseParser):
                         metadata=chunk.metadata,
                     )
                 )
-        return final_chunks
+        return [x.page_content for x in final_chunks]
 
     def _include_headers_in_content(self, content: str, metadata: dict):
         if "Header4" in metadata:

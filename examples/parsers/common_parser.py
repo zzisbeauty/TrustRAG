@@ -1,12 +1,16 @@
 from trustrag.modules.document.common_parser import CommonParser
 
+if __name__ == '__main__':
+    cp=CommonParser()
+    contents=cp.parse("../../data/docs/基础知识.md")
+    print(contents)
 
+# # cp=CommonParser()
+# # content=cp.parse('../../data/docs/计算所现行制度汇编202406/计算所现行制度汇编202406/综合处/中国科学院计算技术研究所综合安全管理制度_20240531修订版.pdf')
+# # print(content)
+#
+#
+#
 # cp=CommonParser()
-# content=cp.parse('../../data/docs/计算所现行制度汇编202406/计算所现行制度汇编202406/综合处/中国科学院计算技术研究所综合安全管理制度_20240531修订版.pdf')
+# content=cp.parse('H:/2024-Xfyun-RAG/data/corpus.txt')
 # print(content)
-
-
-
-cp=CommonParser()
-content=cp.parse('H:/2024-Xfyun-RAG/data/corpus.txt')
-print(content)

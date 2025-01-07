@@ -3,22 +3,19 @@
 """
 @author:quincy qiang
 @license: Apache Licence
-@file: textparser_exmaple.py
+@file: pdfparser_example.py
 @time: 2024/06/06
 @contact: yanqiangmiffy@gamil.com
 @software: PyCharm
 @description: coding..
 """
-from trustrag.modules.document.txt_parser import TextParser
-
-
+from trustrag.modules.document.markdown_parser import MarkdownParser
 
 
 if __name__ == '__main__':
-    text_parser=TextParser()
-    chunks = text_parser.parse(fnm="../../data/docs/sample.txt")
+    parser=MarkdownParser(max_chunk_size=1000)
+    chunks = parser.parse(fnm="../../data/docs/基础知识.md")
+    # print(chunks)
     print(len(chunks))
-
     for chunk in chunks:
-        print("=="*100)
         print(chunk)

@@ -253,7 +253,7 @@ class GLM4Chat(BaseModel):
                                                     )
 
         inputs = inputs.to('cuda')
-        gen_kwargs = {"max_length": 30000, "do_sample": False, "top_k": 10}
+        gen_kwargs = {"max_length": 5120, "do_sample": False, "top_k": 1}
         with torch.no_grad():
             outputs = self.model.generate(**inputs, **gen_kwargs)
             outputs = outputs[:, inputs['input_ids'].shape[1]:]

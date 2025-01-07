@@ -5,11 +5,11 @@ class PdfParserWithMinerU:
 
         # 服务器URL
         self.url = url
-    def parse(self,pdf_file_path,output_dir):
+    def parse(self,pdf_file_path,output_dir:str="output"):
 
         # PDF文件路径
         # pdf_file_path = 'path/to/your/file.pdf'
-
+        print("正在基于MinerU解析pdf文件，请耐心等待，耗时时间较长。")
         # 请求参数
         params = {
             'parse_method': 'auto',
@@ -23,7 +23,7 @@ class PdfParserWithMinerU:
         }
 
         # 发送POST请求
-        response = requests.post(self.url, params=params, files=files)
+        response = requests.post(self.url, params=params, files=files,timeout=2000)
 
         # 检查响应
         if response.status_code == 200:
@@ -36,6 +36,6 @@ class PdfParserWithMinerU:
 
 
 if __name__ == '__main__':
-    pdf_parser=PdfParserWithMinerU(url='http://localhost:8888/pdf_parse')
-    pdf_file_path= '/data/paper/16400599.pdf'
+    pdf_parser=PdfParserWithMinerU(url='https://aicloud.oneainexus.cn:30013/inference/aicloud-yanqiang/mineru/pdf_parse')
+    pdf_file_path= '../../../data/docs/汽车操作手册.pdf'
     pdf_parser.parse(pdf_file_path)

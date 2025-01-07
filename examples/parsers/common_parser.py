@@ -1,16 +1,14 @@
 from trustrag.modules.document.common_parser import CommonParser
-
+from trustrag.modules.document.chunk import TextChunker
 if __name__ == '__main__':
     cp=CommonParser()
-    contents=cp.parse("../../data/docs/基础知识.md")
-    print(contents)
+    tc=TextChunker()
+    # contents=cp.parse("../../data/docs/基础知识.md")
+    paragraphs=cp.parse("../../data/docs/5G垂直行业基础知识介绍--口袋小册子.pdf")
+    chunks=tc.chunk_sentences(paragraphs,chunk_size=256)
+    print(chunks)
+    print(len(chunks))
 
-# # cp=CommonParser()
-# # content=cp.parse('../../data/docs/计算所现行制度汇编202406/计算所现行制度汇编202406/综合处/中国科学院计算技术研究所综合安全管理制度_20240531修订版.pdf')
-# # print(content)
-#
-#
-#
-# cp=CommonParser()
-# content=cp.parse('H:/2024-Xfyun-RAG/data/corpus.txt')
-# print(content)
+    for chunk in chunks:
+        print(chunk)
+        print("+++"*100)

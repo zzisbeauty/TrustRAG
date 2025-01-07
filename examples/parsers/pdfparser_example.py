@@ -19,7 +19,7 @@ if __name__ == '__main__':
     # for chunk in chunks:
     #     print(chunk)
 
-    chunks = parser.parse(fnm="../../data/docs/计算所现行制度汇编202406/计算所现行制度汇编202406/综合处/中国科学院计算技术研究所综合安全管理制度_20240531修订版.pdf")
+    chunks = parser.parse(fnm="../../data/docs/5G垂直行业基础知识介绍--口袋小册子.pdf")
     print(chunks)
     print(len(chunks))
     for chunk in chunks:

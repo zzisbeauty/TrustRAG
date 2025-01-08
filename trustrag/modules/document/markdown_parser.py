@@ -12,16 +12,18 @@
 import typing
 from typing import Optional
 
-# from langchain.docstore.document import Document
-# from langchain.text_splitter import MarkdownHeaderTextSplitter, MarkdownTextSplitter
 from langchain_core.documents.base import Document
 from langchain_text_splitters.markdown import MarkdownHeaderTextSplitter,MarkdownTextSplitter
 from trustrag.modules.document.base import BaseParser
 from trustrag.modules.document.utils import contains_text
+
+
 def get_encoding(file):
     with open(file, 'rb') as f:
         tmp = chardet.detect(f.read())
         return tmp['encoding']
+
+
 class MarkdownParser(object):
     """
     Custom Markdown parser for extracting chunks from Markdown files.

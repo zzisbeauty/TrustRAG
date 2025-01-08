@@ -209,7 +209,7 @@ class InternLMChat(BaseModel):
                                                           trust_remote_code=True).cuda()
 
 
-class GLMChat(BaseModel):
+class GLM3Chat(BaseModel):
     def __init__(self, path: str = '') -> None:
         super().__init__(path)
         self.load_model()
@@ -240,7 +240,7 @@ class GLM4Chat(BaseModel):
         if llm_only:
             prompt = prompt
         else:
-            prompt = PROMPT_TEMPLATE['Qwen_PROMPT_TEMPALTE'].format(system_prompt=SYSTEM_PROMPT, question=prompt,
+            prompt = PROMPT_TEMPLATE['GLM_PROMPT_TEMPALTE'].format(system_prompt=SYSTEM_PROMPT, question=prompt,
                                                                     context=content)
         prompt = prompt.encode("utf-8", 'ignore').decode('utf-8', 'ignore')
         print(prompt)
@@ -253,7 +253,7 @@ class GLM4Chat(BaseModel):
                                                     )
 
         inputs = inputs.to('cuda')
-        gen_kwargs = {"max_length": 30000, "do_sample": False, "top_k": 10}
+        gen_kwargs = {"max_length": 5120, "do_sample": False, "top_k": 1}
         with torch.no_grad():
             outputs = self.model.generate(**inputs, **gen_kwargs)
             outputs = outputs[:, inputs['input_ids'].shape[1]:]

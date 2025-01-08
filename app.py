@@ -19,7 +19,7 @@ from trustrag.modules.retrieval.dense_retriever import DenseRetrieverConfig
 
 # 修改成自己的配置！！！
 app_config = ApplicationConfig()
-app_config.docs_path = "/data/users/searchgpt/yq/TrustRAG/data/docs/"
+app_config.docs_path = "/data/users/searchgpt/yq/trustrag/data/docs/"
 app_config.llm_model_path = "/data/users/searchgpt/pretrained_models/glm-4-9b-chat"
 
 retriever_config = DenseRetrieverConfig(

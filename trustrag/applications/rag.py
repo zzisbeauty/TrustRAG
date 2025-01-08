@@ -11,10 +11,10 @@ import os
 
 from trustrag.modules.citation.match_citation import MatchCitation
 from trustrag.modules.document.common_parser import CommonParser
-from trustrag.modules.generator.llm import GLMChat
+from trustrag.modules.generator.llm import GLM4Chat
 from trustrag.modules.reranker.bge_reranker import BgeReranker
 from trustrag.modules.retrieval.dense_retriever import DenseRetriever
-
+from trustrag.modules.document.chunk import TextChunker
 
 class ApplicationConfig():
     def __init__(self):
@@ -28,22 +28,28 @@ class RagApplication():
         self.parser = CommonParser()
         self.retriever = DenseRetriever(self.config.retriever_config)
         self.reranker = BgeReranker(self.config.rerank_config)
-        self.llm = GLMChat(self.config.llm_model_path)
+        self.llm = GLM4Chat(self.config.llm_model_path)
         self.mc = MatchCitation()
-
+        self.tc=TextChunker()
     def init_vector_store(self):
         """
 
         """
         print("init_vector_store ... ")
-        chunks = []
+        all_paragraphs = []
+        all_chunks = []
         for filename in os.listdir(self.config.docs_path):
             file_path = os.path.join(self.config.docs_path, filename)
             try:
-                chunks.extend(self.parser.parse(file_path))
+                paragraphs=self.parser.parse(file_path)
+                all_paragraphs.append(paragraphs)
             except:
                 pass
-        self.retriever.build_from_texts(chunks)
+        print("chunking for paragraphs")
+        for paragraphs in all_paragraphs:
+            chunks=self.tc.chunk_sentences(paragraphs, 256)
+            all_chunks.extend(chunks)
+        self.retriever.build_from_texts(all_chunks)
         print("init_vector_store done! ")
         self.retriever.save_index(self.config.retriever_config.index_path)
 

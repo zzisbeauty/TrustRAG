@@ -48,3 +48,4 @@ class AppConfig:
     DEBUGGER: bool = True
 
     SHOW_DOCS: bool = True
+

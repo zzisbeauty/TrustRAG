@@ -1,143 +1,168 @@
 #!/usr/bin/env python
 # -*- coding:utf-8 _*-
 """
-@author:quincy qiang
+@author: quincy qiang
 @license: Apache Licence
 @file: codeparser.py.py
-@time: 2024/06/05
-@contact: yanqiangmiffy@gamil.com
+@time: 2025/01/08
+@contact: yanqiangmiffy@gmail.com
 @software: PyCharm
-@description: coding..
+@description: A custom Markdown parser for extracting and processing chunks from Markdown files.
 """
-import typing
-from typing import Optional
+import re
+from typing import List, Dict, Union
 
-# from langchain.docstore.document import Document
-# from langchain.text_splitter import MarkdownHeaderTextSplitter, MarkdownTextSplitter
+import chardet
+from langchain_community.document_loaders import UnstructuredMarkdownLoader
 from langchain_core.documents.base import Document
-from langchain_text_splitters.markdown import MarkdownHeaderTextSplitter,MarkdownTextSplitter
-from trustrag.modules.document.base import BaseParser
-from trustrag.modules.document.utils import contains_text
 
-class MarkdownParser(BaseParser):
+
+def get_encoding(file: Union[str, bytes]) -> str:
     """
-    Custom Markdown parser for extracting chunks from Markdown files.
+    Detects the encoding of a given file.
+
+    Args:
+        file (Union[str, bytes]): The file path or byte stream to detect the encoding for.
+
+    Returns:
+        str: The detected encoding of the file.
+    """
+    with open(file, 'rb') as f:
+        tmp = chardet.detect(f.read())
+        return tmp['encoding']
+
+
+class MarkdownParser:
+    """
+    Custom Markdown parser for extracting and processing chunks from Markdown files.
     """
 
-    max_chunk_size: int
-    supported_file_extensions = [".md"]
-
-    def __init__(self, max_chunk_size: int = 1000, *args, **kwargs):
-        """
-        Initializes the MarkdownParser object.
-        """
-        self.max_chunk_size = max_chunk_size
-
-    def get_chunks(
+    def parse(
         self,
-        filepath: str,
-        *args,
-        **kwargs,
-    ) -> typing.List[Document]:
+        fnm: Union[str, bytes],
+        encoding: str = "utf-8",
+    ) -> List[str]:
         """
         Extracts chunks of content from a given Markdown file.
-        """
-        content = None
-        with open(filepath, "r") as f:
-            content = f.read()
-        if not content:
-            print("Error reading file: " + filepath)
-            return []
 
-        # Define the header patterns to split on (e.g., "# Header 1", "## Header 2", "### Header 3").
-        headers_to_split_on = [
-            ("#", "Header1"),
-            ("##", "Header2"),
-            ("###", "Header3"),
-            ("####", "Header4"),
-        ]
-        chunks_arr = self._recurse_split(
-            content, {}, 0, headers_to_split_on, self.max_chunk_size
-        )
-        final_chunks = []
-        lastAddedChunkSize = self.max_chunk_size + 1
-        for chunk in chunks_arr:
-            page_content = self._include_headers_in_content(
-                content=chunk.page_content,
-                metadata=chunk.metadata,
-            )
-            chunk_length = len(page_content)
-            if chunk_length + lastAddedChunkSize <= self.max_chunk_size:
-                lastAddedChunk: Document = final_chunks.pop()
-                lastAddedChunk.page_content = (
-                    f"{lastAddedChunk.page_content}\n{page_content}"
-                )
-                final_chunks.append(lastAddedChunk)
-                lastAddedChunkSize = chunk_length + lastAddedChunkSize
-                continue
-            lastAddedChunkSize = chunk_length
-            if contains_text(page_content):
-                final_chunks.append(
+        Args:
+            fnm (Union[str, bytes]): The file path or byte stream of the Markdown file.
+            encoding (str, optional): The encoding to use when reading the file. Defaults to "utf-8".
+
+        Returns:
+            List[str]: A list of merged paragraphs extracted from the Markdown file.
+        """
+        # If fnm is not a string (assumed to be a byte stream), detect the encoding
+        if not isinstance(fnm, str):
+            encoding = get_encoding(fnm) if encoding is None else encoding
+            content = fnm.decode(encoding, errors="ignore")
+            documents = self.parse_markdown_to_documents(content)
+        else:
+            loader = UnstructuredMarkdownLoader(fnm, mode="elements")
+            documents = loader.load()
+        paragraphs = self.merge_header_contents(documents)
+        return paragraphs
+
+    def parse_markdown_to_documents(self, content: str) -> List[Document]:
+        """
+        Parses a Markdown string into a list of Document objects.
+
+        Args:
+            content (str): The Markdown content to parse.
+
+        Returns:
+            List[Document]: A list of Document objects representing the parsed Markdown content.
+        """
+        # Regular expression to match Markdown headings
+        heading_pattern = re.compile(r'^(#+)\s*(.*)$', re.MULTILINE)
+
+        # Store the parsed results
+        documents = []
+
+        # Split the content into sections
+        sections = content.split('\n')
+
+        for section in sections:
+            # Check if the section is a heading
+            heading_match = heading_pattern.match(section)
+            if heading_match:
+                # Calculate the depth of the heading
+                current_depth = len(heading_match.group(1)) - 1
+                # Extract the heading content
+                page_content = heading_match.group(2).strip()
+                # Add to the results
+                documents.append(
                     Document(
                         page_content=page_content,
-                        metadata=chunk.metadata,
+                        metadata={"category_depth": current_depth}
                     )
                 )
-        return final_chunks
-
-    def _include_headers_in_content(self, content: str, metadata: dict):
-        if "Header4" in metadata:
-            content = "#### " + metadata["Header4"] + "\n" + content
-        if "Header3" in metadata:
-            content = "### " + metadata["Header3"] + "\n" + content
-        if "Header2" in metadata:
-            content = "## " + metadata["Header2"] + "\n" + content
-        if "Header1" in metadata:
-            content = "# " + metadata["Header1"] + "\n" + content
-        return content
-
-    def _recurse_split(self, content, metadata, i, headers_to_split_on, max_chunk_size):
-        if i >= len(headers_to_split_on):
-            # Use Markdown Text Splitter in this case
-            text_splitter = MarkdownTextSplitter(
-                chunk_size=max_chunk_size,
-                chunk_overlap=0,
-                length_function=len,
-            )
-            texts = text_splitter.split_text(content)
-            chunks_arr = [
-                Document(
-                    page_content=text,
-                    metadata=metadata,
-                )
-                for text in texts
-                if contains_text(text)
-            ]
-            return chunks_arr
-
-        markdown_splitter = MarkdownHeaderTextSplitter(
-            headers_to_split_on=headers_to_split_on[i : i + 1]
-        )
-        md_header_splits = markdown_splitter.split_text(content)
-        chunks_arr = []
-        for document in md_header_splits:
-            document.metadata.update(metadata)
-            chunk_length = len(document.page_content)
-            if chunk_length <= max_chunk_size and contains_text(document.page_content):
-                chunks_arr.append(
-                    Document(
-                        page_content=document.page_content,
-                        metadata=document.metadata,
+            else:
+                # If not a heading and the content is not empty, add to the results
+                if section.strip():
+                    documents.append(
+                        Document(page_content=section.strip(), metadata={})
                     )
-                )
-                continue
-            chunks_arr.extend(
-                self._recurse_split(
-                    document.page_content,
-                    document.metadata,
-                    i + 1,
-                    headers_to_split_on,
-                    max_chunk_size,
-                )
-            )
-        return chunks_arr
+        return documents
+
+    def merge_header_contents(self, documents: List[Document]) -> List[str]:
+        """
+        Merges headers and their corresponding content into a list of paragraphs.
+
+        Args:
+            documents (List[Document]): A list of Document objects representing the parsed Markdown content.
+
+        Returns:
+            List[str]: A list of merged paragraphs, each containing a header and its corresponding content.
+        """
+        merged_data = []
+        current_title = None
+        current_content = []
+
+        for document in documents:
+            metadata = document.metadata
+            category_depth = metadata.get('category_depth', None)
+            page_content = document.page_content
+
+            # If category_depth is 0, it indicates a top-level heading
+            if category_depth == 0:
+                # If current_title is not None, it means we have collected a complete heading and its content
+                if current_title is not None:
+                    # Merge the current title and content into a single string and add to merged_data
+                    merged_content = "\n".join(current_content)
+                    merged_data.append({
+                        'title': current_title,
+                        'content': merged_content
+                    })
+                    # Reset the current title and content
+                    current_content = []
+
+                # Update the current title and add Markdown heading markers based on category_depth
+                current_title = f"{'#' * (category_depth + 1)} {page_content}"
+
+            # If category_depth is not 0, it indicates body content or other headings
+            else:
+                # If current_title is None, it means the content starts with body text
+                if current_title is None:
+                    merged_data.append({
+                        'title': '',
+                        'content': page_content
+                    })
+                # Headings other than top-level (e.g., second-level, third-level, etc.)
+                elif category_depth is not None:
+                    # Add Markdown heading markers
+                    current_content.append(f"{'#' * (category_depth + 1)} {document.page_content}")
+                else:
+                    # Add the content to the current content list
+                    current_content.append(page_content)
+
+        # Handle the last heading and its content
+        if current_title is not None:
+            merged_content = "\n".join(current_content)
+            merged_data.append({
+                'title': current_title,
+                'content': merged_content
+            })
+        paragraphs = [item["title"] + "\n" + item["content"] for item in merged_data]
+
+        return paragraphs

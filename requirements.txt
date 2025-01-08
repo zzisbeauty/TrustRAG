@@ -36,14 +36,14 @@ pdfplumber
 readability
 html_text
 python-docx
-tortoise
+tortoise-orm
 python-magic
 html_text
 readability
 PyMuPDF
 hanziconv
 PyPDF2
-gradio
+gradio==3.50.2
 loguru
 xgboost
 bm25s
@@ -58,3 +58,5 @@ minio
 bson
 elasticsearch
 pymongo==4.8.0
+zhipuai
+dashscope

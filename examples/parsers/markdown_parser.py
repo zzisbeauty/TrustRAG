@@ -3,21 +3,21 @@
 """
 @author:quincy qiang
 @license: Apache Licence
-@file: markdown_parser.py
+@file: pdfparser_example.py
 @time: 2024/06/06
 @contact: yanqiangmiffy@gamil.com
 @software: PyCharm
 @description: coding..
 """
 from trustrag.modules.document.markdown_parser import MarkdownParser
+from langchain_community.document_loaders import UnstructuredMarkdownLoader
 
 
 if __name__ == '__main__':
-    markdown_parser=MarkdownParser(max_chunk_size=100)
-
-    chunks=markdown_parser.get_chunks(filepath="../../data/docs/bm25算法.md")
-
-    print(len(chunks))
-
-    for chunk in chunks:
-        print(chunk.page_content)
+    parser=MarkdownParser()
+    paragraphs= parser.parse(fnm="../../data/docs/基础知识.md")
+    # print(chunks)
+    print(len(paragraphs))
+    for chunk in paragraphs:
+        print("==="*10)
+        print(chunk)

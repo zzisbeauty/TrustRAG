@@ -9,23 +9,16 @@
 @software: PyCharm
 @description: coding..
 """
-from trustrag.modules.document.text_parser import TextParser
+from trustrag.modules.document.txt_parser import TextParser
 
 
 
 
 if __name__ == '__main__':
-    text_parser=TextParser(
-        max_chunk_size=512
-    )
-
-    # chunks=text_parser.get_chunks(
-    #     filepath="../../data/docs/制度汇编.txt"
-    # )
-    chunks = text_parser.get_chunks(
-        filepath="H:/2024-Xfyun-RAG/data/corpus.txt/corpus.txt"
-    )
+    text_parser=TextParser()
+    chunks = text_parser.parse(fnm="../../data/docs/sample.txt")
     print(len(chunks))
 
     for chunk in chunks:
+        print("=="*100)
         print(chunk)

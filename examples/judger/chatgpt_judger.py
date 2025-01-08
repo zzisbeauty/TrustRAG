@@ -10,7 +10,8 @@ if __name__ == '__main__':
         data = json.load(f)
 
     judger_config = OpenaiJudgerConfig(
-        api_url="https://aicloud.oneainexus.cn:30013/inference/aicloud-yanqiang/gomatellm/"
+        # api_url="https://aicloud.oneainexus.cn:30013/inference/aicloud-yanqiang/gomatellm/"
+        api_url="http://10.208.63.29:8888"
     )
     openai_judger = OpenaiJudger(judger_config)
 

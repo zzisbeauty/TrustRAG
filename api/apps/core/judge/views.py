@@ -11,22 +11,23 @@
 """
 import loguru
 from fastapi import APIRouter
-
+from api.apps.config.rerank_config import RerankConfig
 from api.apps.core.judge.bodys import JudgeBody
 from api.apps.handle.response.json_response import ApiResponse
 from trustrag.modules.judger.bge_judger import BgeJudger, BgeJudgerConfig
 from trustrag.modules.judger.chatgpt_judger import OpenaiJudger, OpenaiJudgerConfig
-
 judge_router = APIRouter()
 
+rerank_config = RerankConfig()
+
 judge_config = BgeJudgerConfig(
-    model_name_or_path="/data/users/searchgpt/pretrained_models/bge-reranker-large"
+    model_name_or_path=rerank_config.model_name_or_path
 )
 bge_judger = BgeJudger(judge_config)
 
 judger_config = OpenaiJudgerConfig(
     # api_url="https://aicloud.oneainexus.cn:30013/inference/aicloud-yanqiang/gomatellm/"
-    api_url="https://http://10.208.63.29:8888/"
+    api_url=rerank_config.llm_url
 )
 openai_judger = OpenaiJudger(judger_config)
 

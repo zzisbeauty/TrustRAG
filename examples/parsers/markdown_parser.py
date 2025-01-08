@@ -14,10 +14,10 @@ from langchain_community.document_loaders import UnstructuredMarkdownLoader
 
 
 if __name__ == '__main__':
-    parser=MarkdownParser(max_chunk_size=1000)
-    chunks = parser.parse(fnm="../../data/docs/基础知识.md")
+    parser=MarkdownParser()
+    paragraphs= parser.parse(fnm="../../data/docs/基础知识.md")
     # print(chunks)
-    print(len(chunks))
-    for chunk in chunks:
+    print(len(paragraphs))
+    for chunk in paragraphs:
         print("==="*10)
         print(chunk)

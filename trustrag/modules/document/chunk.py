@@ -6,17 +6,6 @@ from trustrag.modules.document import rag_tokenizer
 class TextChunker:
     def __init__(self, ):
         self.tokenizer = rag_tokenizer
-
-    # def split_sentences(self, text):
-    #     # 使用正则表达式按中英文标点符号进行分句
-    #     sentence_endings = re.compile(r'([。！？])')
-    #     sentences = sentence_endings.split(text)
-    #
-    #     # 将标点符号和前面的句子合并
-    #     sentences = ["".join(i) for i in zip(sentences[0::2], sentences[1::2])] + sentences[2::2]
-    #     sentences=[sentence.strip() for sentence in sentences if sentence.strip()]
-    #     return sentences
-
     def split_sentences(self, text):
         # 使用正则表达式按中文标点符号进行分句
         sentence_endings = re.compile(r'([。！？.!?])')

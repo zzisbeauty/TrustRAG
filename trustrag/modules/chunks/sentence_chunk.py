@@ -1,14 +1,18 @@
 import re
+
+from chonkie import BaseChunker
 from tqdm import tqdm
 from trustrag.modules.document import rag_tokenizer
+from trustrag.modules.chunks.base import BaseChunker
 
-
-class TextChunker:
-    def __init__(self):
+class SentenceChunker(BaseChunker):
+    def __init__(self,chunk_size=512):
         """
         Initializes the TextChunker with a tokenizer.
         """
+        super().__init__()
         self.tokenizer = rag_tokenizer
+        self.chunk_size=chunk_size
 
     def split_sentences(self, text: str) -> list[str]:
         """
@@ -63,12 +67,12 @@ class TextChunker:
 
         return processed_chunks
 
-    def get_chunks(self, paragraphs: list[str], chunk_size: int) -> list[str]:
+    def get_chunks(self, paragraphs: list[str]) -> list[str]:
         """
         Splits a list of paragraphs into chunks based on a specified token size.
 
         Args:
-            paragraphs (list[str]): A list of paragraphs to be chunked.
+            paragraphs (list[str]|str): A list of paragraphs to be chunked.
             chunk_size (int): The maximum number of tokens allowed per chunk.
 
         Returns:
@@ -91,7 +95,7 @@ class TextChunker:
         # Iterate through sentences and build chunks based on token count
         for sentence in sentences:
             tokens = self.tokenizer.tokenize(sentence)
-            if current_chunk_tokens + len(tokens) <= chunk_size:
+            if current_chunk_tokens + len(tokens) <= self.chunk_size:
                 # Add sentence to the current chunk if it fits
                 current_chunk.append(sentence)
                 current_chunk_tokens += len(tokens)
@@ -108,15 +112,3 @@ class TextChunker:
         # Preprocess the chunks to normalize formatting
         chunks = self.process_text_chunks(chunks)
         return chunks
-
-
-if __name__ == '__main__':
-    # Example usage
-    paragraphs = ['Hello!\nHi!\nGoodbye!']
-    tc = TextChunker()
-    chunk_size = 512
-    chunks = tc.get_chunks(paragraphs, chunk_size)
-
-    # Print the resulting chunks
-    for i, chunk in enumerate(chunks):
-        print(f"Chunk {i + 1}: {chunk}\n")

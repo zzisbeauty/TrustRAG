@@ -67,13 +67,13 @@ async def parser(file: UploadFile = File(...), chunk_size: int = 512):
             for section in contents:
                 # chunks = tc.chunk_sentences(section['content'], chunk_size=chunk_size)
                 if 'chunks' not in section:
-                    chunks = tc.chunk_sentences(section['content'], chunk_size=chunk_size)
+                    chunks = tc.get_chunks(section['content'], chunk_size=chunk_size)
                     section['chunks'] = chunks
                 else:
                     section['chunks'] = section['chunks']
                 results.append(section)
         else:
-            chunks = tc.chunk_sentences(contents, chunk_size=chunk_size)
+            chunks = tc.get_chunks(contents, chunk_size=chunk_size)
             results.append(
                 {
                     'source': filename,

@@ -298,7 +298,7 @@ This project is completed by the [`GoMate`](https://github.com/gomate-community)
 
 Welcome to provide suggestions and report bad cases. Join the group for timely communication, and PRs are also welcome.</br>
 
-<img src="https://raw.githubusercontent.com/gomate-community/TrustRAG/main/resources/trustrag_group.png" width="180px" height="270px">
+<img src="https://raw.githubusercontent.com/gomate-community/TrustRAG/pipeline/resources/trustrag_group.png" width="180px">
 
 If the group is full or for cooperation and exchange, please contact:
 

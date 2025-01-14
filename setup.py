@@ -18,7 +18,7 @@ setup(
     install_requires=required,
     author_email="yanqiang@ict.ac.cn",
     description="RAG Framework within Reliable input,Trusted output",
-    long_description=open('README.md').read(),
+    long_description=open('README_zh.md').read(),
     long_description_content_type='text/markdown',
     url="https://github.com/gomate-community/GoMate",
     python_requires='>=3.9',

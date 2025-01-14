@@ -11,15 +11,15 @@ with open('requirements.txt') as f:
 setup(
     name="trustrag",
     version=__version__,
-    author="trustrag-community",
+    author="gomate-community",
     packages=['trustrag'],
     package_dir={'trustrag': 'trustrag'},
     package_data={'trustrag': ['*.*', 'applications/*', 'modules/document/*']},
     install_requires=required,
     author_email="yanqiang@ict.ac.cn",
     description="RAG Framework within Reliable input,Trusted output",
-    long_description=open('README_zh.md').read(),
+    long_description=open('README.md').read(),
     long_description_content_type='text/markdown',
-    url="https://github.com/gomate-community/GoMate",
+    url="https://github.com/gomate-community/TrustRAG",
     python_requires='>=3.9',
 )

@@ -60,3 +60,4 @@ elasticsearch
 pymongo==4.8.0
 zhipuai
 dashscope
+duckduckgo-search

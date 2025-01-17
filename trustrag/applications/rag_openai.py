@@ -10,8 +10,8 @@
 """
 import os
 from trustrag.modules.document.common_parser import CommonParser
-from trustrag.modules.generator.chat import DeepSeekChat
-from trustrag.modules.reranker.bge_reranker import BgeReranker
+from trustrag.modules.generator.chat import DeepSeekChat, GPT_4o_up
+# from trustrag.modules.reranker.bge_reranker import BgeReranker
 from trustrag.modules.retrieval.dense_retriever import DenseRetriever
 from trustrag.modules.document.chunk import TextChunker
 
@@ -19,6 +19,8 @@ class ApplicationConfig():
     def __init__(self):
         self.retriever_config = None
         self.rerank_config = None
+        self.api_key = None
+        self.base_url = None
 
 
 class RagApplication():
@@ -26,8 +28,8 @@ class RagApplication():
         self.config = config
         self.parser = CommonParser()
         self.retriever = DenseRetriever(self.config.retriever_config)
-        self.reranker = BgeReranker(self.config.rerank_config)
-        self.llm = DeepSeekChat(key=self.config.your_key)
+        # self.reranker = BgeReranker(self.config.rerank_config)
+        self.llm = GPT_4o_up(key=self.config.api_key)
         self.tc=TextChunker()
         self.rag_prompt="""请结合参考的上下文内容回答用户问题，如果上下文不能支撑用户问题，那么回答不知道或者我无法根据参考信息回答。
         问题: {question}
@@ -70,7 +72,7 @@ class RagApplication():
 
     def chat(self, question: str = '', top_k: int = 5):
         contents = self.retriever.retrieve(query=question, top_k=top_k)
-        contents = self.reranker.rerank(query=question, documents=[content['text'] for content in contents])
+        # contents = self.reranker.rerank(query=question, documents=[content['text'] for content in contents])
         content = '\n'.join([content['text'] for content in contents])
 
         system_prompt = "你是一个人工智能助手."
@@ -85,4 +87,5 @@ class RagApplication():
 
         # 调用 chat 方法进行对话
         result = self.llm.chat(system=system_prompt, history=history, gen_conf=gen_conf)
+        result = result[0]  #result[1]是 total_token，在调用 在线 api 时需要这样处理
         return result, history, contents

@@ -61,3 +61,5 @@ pymongo==4.8.0
 zhipuai
 dashscope
 duckduckgo-search
+qdrant-client
+qdrant-client[fastembed]

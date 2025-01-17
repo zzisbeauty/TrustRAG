@@ -23,14 +23,14 @@ app_config = ApplicationConfig()
 app_config.docs_path = "data/docs"
 app_config.llm_model_path = "gpt-4o"
 app_config.base_url = "https://api.openai-up.com/v1"
-app_config.api_key = "sk-vqA0Wum5fqUWKlJKE2EeAaF68f1941B8880e492b605f3bFd"
+app_config.api_key = "llm_api_key"
 
 retriever_config = DenseRetrieverConfig(
     model_name_or_path="text-embedding-ada-002",
     dim=1536,   #openai_dim
     index_path='examples/retrievers/dense_cache',
     base_url = "https://api.openai-up.com/v1",
-    api_key = "sk-vqA0Wum5fqUWKlJKE2EeAaF68f1941B8880e492b605f3bFd"
+    api_key = "embedding_api_key"
 )
 # rerank_config = BgeRerankerConfig(
 #     model_name_or_path="/data/users/searchgpt/pretrained_models/bge-reranker-large"

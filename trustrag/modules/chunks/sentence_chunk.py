@@ -1,18 +1,41 @@
 import re
-
-from chonkie import BaseChunker
-from tqdm import tqdm
 from trustrag.modules.document import rag_tokenizer
 from trustrag.modules.chunks.base import BaseChunker
 
 class SentenceChunker(BaseChunker):
-    def __init__(self,chunk_size=512):
+    """
+    A class for splitting text into chunks based on sentences, ensuring each chunk does not exceed a specified token size.
+
+    This class is designed to handle both Chinese and English text, splitting it into sentences using punctuation marks.
+    It then groups these sentences into chunks, ensuring that the total number of tokens in each chunk does not exceed
+    the specified `chunk_size`. The class also provides methods to preprocess the text chunks by normalizing excessive
+    newlines and spaces.
+
+    Attributes:
+        tokenizer (callable): A tokenizer function used to count tokens in sentences.
+        chunk_size (int): The maximum number of tokens allowed per chunk.
+
+    Methods:
+        split_sentences(text: str) -> list[str]:
+            Splits the input text into sentences based on Chinese and English punctuation marks.
+
+        process_text_chunks(chunks: list[str]) -> list[str]:
+            Preprocesses text chunks by normalizing excessive newlines and spaces.
+
+        get_chunks(paragraphs: list[str]) -> list[str]:
+            Splits a list of paragraphs into chunks based on a specified token size.
+    """
+
+    def __init__(self, chunk_size=512):
         """
-        Initializes the TextChunker with a tokenizer.
+        Initializes the SentenceChunker with a tokenizer and a specified chunk size.
+
+        Args:
+            chunk_size (int, optional): The maximum number of tokens allowed per chunk. Defaults to 512.
         """
         super().__init__()
         self.tokenizer = rag_tokenizer
-        self.chunk_size=chunk_size
+        self.chunk_size = chunk_size
 
     def split_sentences(self, text: str) -> list[str]:
         """
@@ -73,7 +96,6 @@ class SentenceChunker(BaseChunker):
 
         Args:
             paragraphs (list[str]|str): A list of paragraphs to be chunked.
-            chunk_size (int): The maximum number of tokens allowed per chunk.
 
         Returns:
             list[str]: A list of text chunks, each containing sentences that fit within the token limit.
@@ -112,3 +134,11 @@ class SentenceChunker(BaseChunker):
         # Preprocess the chunks to normalize formatting
         chunks = self.process_text_chunks(chunks)
         return chunks
+
+if __name__ == '__main__':
+    with open("../../../data/docs/news.txt","r",encoding="utf-8") as f:
+        content=f.read()
+    tc=SentenceChunker(chunk_size=128)
+    chunks = tc.get_chunks([content])
+    for chunk in chunks:
+        print(f"Chunk Content：\n{chunk}")

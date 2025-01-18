@@ -1,17 +1,13 @@
-import json
-import numpy as np
 from qdrant_client import QdrantClient
 from qdrant_client.models import VectorParams, Distance, Filter, FieldCondition, MatchValue
-from sentence_transformers import SentenceTransformer
 from typing import List, Dict, Any, Optional, Union
 from abc import ABC, abstractmethod
-from typing import List
 import numpy as np
 from openai import OpenAI
 
 class EmbeddingGenerator(ABC):
     @abstractmethod
-    def generate_embedding(self, text: str) -> List[float]:
+    def generate_embedding(self, text: List[str]) -> np.ndarray:
         pass
 
 class SentenceTransformerEmbedding(EmbeddingGenerator):
@@ -19,21 +15,21 @@ class SentenceTransformerEmbedding(EmbeddingGenerator):
         from sentence_transformers import SentenceTransformer
         self.model = SentenceTransformer(model_name_or_path, device=device)
 
-    def generate_embedding(self, text: str) -> List[float]:
-        return self.model.encode(text).tolist()
+    def generate_embedding(self, text: List[str]) -> np.ndarray:
+        return self.model.encode(text)
 
 class OpenAIEmbedding(EmbeddingGenerator):
     def __init__(self, api_key: str, base_url: str, model: str):
         self.client = OpenAI(api_key=api_key, base_url=base_url)
         self.model = model
 
-    def generate_embedding(self, text: str) -> List[float]:
+    def generate_embedding(self, text: List[str]) -> np.ndarray:
         resp = self.client.embeddings.create(
             model=self.model,
-            input=[text],
+            input=text,
             encoding_format="float"
         )
-        return resp.data[0].embedding
+        return np.array([data.embedding for data in resp.data])
 
 class QdrantEngine:
     def __init__(
@@ -66,6 +62,7 @@ class QdrantEngine:
             self.client.create_collection(
                 collection_name=self.collection_name,
                 vectors_config=VectorParams(size=self.vector_size, distance=self.distance),
+                timeout=500,
             )
 
     def upload_vectors(
@@ -106,12 +103,12 @@ class QdrantEngine:
         :return: List of payloads from the closest vectors.
         """
         # Generate embedding using the provided embedding generator
-        vector = self.embedding_generator.generate_embedding(text)
+        vector = self.embedding_generator.generate_embedding([text])
 
         # Search for closest vectors in the collection
         search_result = self.client.query_points(
             collection_name=self.collection_name,
-            query=vector,
+            query=vector[0],  # Use the first (and only) embedding
             query_filter=query_filter,
             limit=limit,
         ).points
@@ -143,33 +140,3 @@ class QdrantEngine:
 
         return Filter(must=filter_conditions)
 
-if __name__ == "__main__":
-    # Initialize embedding generators
-    local_embedding_generator = SentenceTransformerEmbedding(model_name_or_path="all-MiniLM-L6-v2", device="cpu")
-    openai_embedding_generator = OpenAIEmbedding(api_key="your_key", base_url="https://ark.cn-beijing.volces.com/api/v3", model="your_model_id")
-
-    # Initialize QdrantEngine with local embedding generator
-    vector_store = QdrantEngine(
-        collection_name="startups",
-        embedding_generator=local_embedding_generator,
-        qdrant_client_params={"host": "localhost", "port": 6333},
-    )
-
-    # Example vectors and payload
-    vectors = np.random.rand(100, 384).tolist()
-    payload = [{"name": f"Startup {i}", "city": "Berlin", "category": "AI"} for i in range(100)]
-
-    # Upload vectors and payload
-    vector_store.upload_vectors(vectors=vectors, payload=payload)
-
-    # Build a filter for city and category
-    conditions = [
-        {"key": "city", "match": "Berlin"},
-        {"key": "category", "match": "AI"},
-    ]
-    custom_filter = vector_store.build_filter(conditions)
-
-    # Search for startups related to "AI" in Berlin
-    results = vector_store.search(text="AI", query_filter=custom_filter, limit=5)
-    for result in results:
-        print(result)

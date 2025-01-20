@@ -95,8 +95,3 @@ class XinferenceChat(Base):
     def __init__(self, key=None, model_name="", base_url=""):
         key = "xxx"
         super().__init__(key, model_name, base_url)
-
-
-
-
-

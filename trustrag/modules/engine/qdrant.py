@@ -4,32 +4,8 @@ from typing import List, Dict, Any, Optional, Union
 from abc import ABC, abstractmethod
 import numpy as np
 from openai import OpenAI
+from trustrag.modules.retrieval.embedding import EmbeddingGenerator
 
-class EmbeddingGenerator(ABC):
-    @abstractmethod
-    def generate_embedding(self, text: List[str]) -> np.ndarray:
-        pass
-
-class SentenceTransformerEmbedding(EmbeddingGenerator):
-    def __init__(self, model_name_or_path: str = "all-MiniLM-L6-v2", device: str = "cpu"):
-        from sentence_transformers import SentenceTransformer
-        self.model = SentenceTransformer(model_name_or_path, device=device)
-
-    def generate_embedding(self, text: List[str]) -> np.ndarray:
-        return self.model.encode(text)
-
-class OpenAIEmbedding(EmbeddingGenerator):
-    def __init__(self, api_key: str, base_url: str, model: str):
-        self.client = OpenAI(api_key=api_key, base_url=base_url)
-        self.model = model
-
-    def generate_embedding(self, text: List[str]) -> np.ndarray:
-        resp = self.client.embeddings.create(
-            model=self.model,
-            input=text,
-            encoding_format="float"
-        )
-        return np.array([data.embedding for data in resp.data])
 
 class QdrantEngine:
     def __init__(

@@ -184,3 +184,67 @@ class BgeEmbedding(BaseEmbeddings):
         model = AutoModel.from_pretrained(path).to(device)
         model.eval()
         return model, tokenizer
+
+
+class EmbeddingGenerator(ABC):
+    @abstractmethod
+    def generate_embeddings(self, texts: List[str]) -> np.ndarray:
+        pass
+
+class SentenceTransformerEmbedding(EmbeddingGenerator):
+    def __init__(self, model_name_or_path: str = "all-MiniLM-L6-v2", device: str = "cpu"):
+        from sentence_transformers import SentenceTransformer
+        self.model = SentenceTransformer(model_name_or_path, device=device)
+
+    def generate_embeddings(self, texts: List[str]) -> np.ndarray:
+        return self.model.encode(texts)
+
+
+class OpenAIEmbedding:
+    def __init__(self, api_key: str, base_url: str, model: str):
+        """
+        Initialize the OpenAIEmbedding class with API key, base URL, and model name.
+
+        Args:
+            api_key (str): The API key for accessing the OpenAI API.
+            base_url (str): The base URL for the API endpoint.
+            model (str): The name of the embedding model to use.
+        """
+        self.client = OpenAI(api_key=api_key, base_url=base_url)
+        self.model = model
+
+    def generate_embedding(self, text: str) -> np.ndarray:
+        """
+        Generate an embedding vector for a single text input.
+
+        Args:
+            text (str): The input text to generate an embedding for.
+
+        Returns:
+            np.ndarray: The embedding vector as a NumPy array.
+        """
+        # Call the OpenAI API to create embeddings
+        resp = self.client.embeddings.create(
+            model=self.model,  # Specify the embedding model
+            input=text,  # Pass the input text
+            encoding_format="float"  # Ensure the output is in float format
+        )
+        # Extract the embedding vector from the response and convert it to a NumPy array
+        return np.array(resp.data[0].embedding)
+
+    def generate_embeddings(self, texts: List[str]) -> List[np.ndarray]:
+        """
+        Generate embedding vectors for a list of texts using a for loop.
+
+        Args:
+            texts (List[str]): A list of input texts to generate embeddings for.
+
+        Returns:
+            List[np.ndarray]: A list of embedding vectors, each as a NumPy array.
+        """
+        embeddings = []  # Initialize an empty list to store embeddings
+        for text in texts:
+            # Generate an embedding for each text and append it to the list
+            embedding = self.generate_embedding(text)
+            embeddings.append(embedding)
+        return embeddings

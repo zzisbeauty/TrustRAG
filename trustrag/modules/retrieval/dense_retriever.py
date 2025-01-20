@@ -9,7 +9,7 @@
 """
 import gc
 import os
-from typing import List,Dict,Union
+from typing import List, Dict, Union
 from openai import OpenAI
 import faiss
 import numpy as np
@@ -78,9 +78,9 @@ class DenseRetriever(BaseRetriever):
         self.config = config
         # self.model = FlagModel(config.model_name)
         self.client = OpenAI(
-                            base_url=config.base_url,  # 替换为你的 API 地址
-                            api_key=config.api_key  # 替换为你的 API 密钥
-                        )
+            base_url=config.base_url,  # 替换为你的 API 地址
+            api_key=config.api_key  # 替换为你的 API 密钥
+        )
         self.index = faiss.IndexFlatIP(config.dim)
         self.dim = config.dim
         self.embeddings = []
@@ -143,8 +143,8 @@ class DenseRetriever(BaseRetriever):
         """
         # Using configured batch_size
         # return self.model.encode(sentences=sentences, batch_size=self.batch_size)
-    
-        #防止chunk为空字符串
+
+        # 防止chunk为空字符串
         sentences = [sentence if sentence else "This is a none string." for sentence in sentences]
 
         response = self.client.embeddings.create(
@@ -171,7 +171,6 @@ class DenseRetriever(BaseRetriever):
         self.embeddings.extend(embeddings)  # Add embeddings to the embeddings list
         self.num_documents += len(texts)  # Update the document count
 
-
     def add_text(self, text: str):
         """
         Add a single text to the index.
@@ -195,7 +194,6 @@ class DenseRetriever(BaseRetriever):
         for i in tqdm(range(0, len(corpus), self.batch_size), desc="Building index"):
             batch = corpus[i:i + self.batch_size]
             self.add_texts(batch)
-
 
     def retrieve(self, query: str = None, top_k: int = 5) -> List[Dict[str, Union[str, float]]]:
         """

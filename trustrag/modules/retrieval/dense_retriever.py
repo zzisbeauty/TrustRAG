@@ -9,8 +9,8 @@
 """
 import gc
 import os
-from typing import List,Dict,Union
-
+from typing import List, Dict, Union
+from openai import OpenAI
 import faiss
 import numpy as np
 from FlagEmbedding import FlagModel
@@ -37,12 +37,16 @@ class DenseRetrieverConfig(BaseConfig):
             model_name_or_path='sentence-transformers/all-mpnet-base-v2',
             dim=768,
             index_path=None,
-            batch_size=32
+            batch_size=32,
+            api_key=None,
+            base_url=None
     ):
         self.model_name = model_name_or_path
         self.dim = dim
         self.index_path = index_path
         self.batch_size = batch_size
+        self.api_key = api_key
+        self.base_url = base_url
 
     def validate(self):
         """Validate Dense configuration parameters."""
@@ -72,7 +76,11 @@ class DenseRetriever(BaseRetriever):
 
     def __init__(self, config):
         self.config = config
-        self.model = FlagModel(config.model_name)
+        # self.model = FlagModel(config.model_name)
+        self.client = OpenAI(
+            base_url=config.base_url,  # 替换为你的 API 地址
+            api_key=config.api_key  # 替换为你的 API 密钥
+        )
         self.index = faiss.IndexFlatIP(config.dim)
         self.dim = config.dim
         self.embeddings = []
@@ -134,7 +142,20 @@ class DenseRetriever(BaseRetriever):
             np.ndarray: A numpy array of embeddings.
         """
         # Using configured batch_size
-        return self.model.encode(sentences=sentences, batch_size=self.batch_size)
+        # return self.model.encode(sentences=sentences, batch_size=self.batch_size)
+
+        # 防止chunk为空字符串
+        sentences = [sentence if sentence else "This is a none string." for sentence in sentences]
+
+        response = self.client.embeddings.create(
+            input=sentences,
+            model=self.config.model_name
+        )
+        embedding = [np.array(item.embedding) for item in response.data]
+        # 提取嵌入向量
+        embedding = np.array(embedding)
+        return embedding
+
     def add_texts(self, texts: List[str]):
         """
         Add multiple texts to the index.
@@ -149,7 +170,6 @@ class DenseRetriever(BaseRetriever):
         self.documents.extend(texts)  # Add texts to the documents list
         self.embeddings.extend(embeddings)  # Add embeddings to the embeddings list
         self.num_documents += len(texts)  # Update the document count
-
 
     def add_text(self, text: str):
         """
@@ -174,7 +194,6 @@ class DenseRetriever(BaseRetriever):
         for i in tqdm(range(0, len(corpus), self.batch_size), desc="Building index"):
             batch = corpus[i:i + self.batch_size]
             self.add_texts(batch)
-
 
     def retrieve(self, query: str = None, top_k: int = 5) -> List[Dict[str, Union[str, float]]]:
         """

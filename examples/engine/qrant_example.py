@@ -1,5 +1,5 @@
 from trustrag.modules.engine.qdrant import QdrantEngine
-from trustrag.modules.engine.qdrant import SentenceTransformerEmbedding
+from trustrag.modules.retrieval.embedding import SentenceTransformerEmbedding
 if __name__ == "__main__":
     # Initialize embedding generators
     local_embedding_generator = SentenceTransformerEmbedding(model_name_or_path="all-MiniLM-L6-v2", device="cpu")
@@ -67,7 +67,7 @@ if __name__ == "__main__":
          "link": "http:\/\/www.Rocketmiles.com", "city": "Berlin"}
 
     ]
-    vectors = qdrant_engine.embedding_generator.generate_embedding([doc["description"] for doc in documents])
+    vectors = qdrant_engine.embedding_generator.generate_embeddings([doc["description"] for doc in documents])
     print(vectors.shape)
     payload = [doc for doc  in documents]
 

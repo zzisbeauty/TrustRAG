@@ -26,7 +26,7 @@ The core design of TrustRAG lies in its **high configurability and modularity**,
 **“Reliable input, Trusted output”**
 
 ## 🎉 Changelog
-
+- Supports vector database engines, such as Milvus and Qdrant.
 - Support for multimodal RAG question-answering, API using **GLM-4V-Flash**, code available at [trustrag/applications/rag_multimodal.py](trustrag/applications/rag_multimodal.py)
 - TrustRAG packaging and build, supporting both pip and source installation
 - Added [MinerU document parsing](https://github.com/gomate-community/TrustRAG/blob/main/docs/mineru.md): A one-stop open-source high-quality data extraction tool, supporting PDF/webpage/multi-format e-book extraction `[20240907]`

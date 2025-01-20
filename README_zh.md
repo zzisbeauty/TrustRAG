@@ -29,6 +29,7 @@ TrustRAG框架的设计核心在于其**高度的可配置性和模块化**，�
 
 ## 🎉 更新记录
 
+- 🔥支持向量数据库引擎，例如Milvus，Qdrant等-`[20250120]`
 - 支持多模态RAG问答，API使用**GLM-4V-Flash**，代码见[trustrag/applications/rag_multimodal.py](trustrag/applications/rag_multimodal.py)
 - TrustRAG 打包构建，支持pip和source两种方式安装
 - 添加[MinerU文档解析](https://github.com/gomate-community/TrustRAG/blob/main/docs/mineru.md)

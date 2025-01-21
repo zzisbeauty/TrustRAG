@@ -19,17 +19,32 @@ from trustrag.modules.retrieval.dense_retriever import DenseRetrieverConfig
 
 # 修改成自己的配置！！！
 app_config = ApplicationConfig()
+
+# linux example
+# app_config.docs_path = "/data/users/searchgpt/yq/trustrag/data/docs/"
+# app_config.llm_model_path = "/data/users/searchgpt/pretrained_models/glm-4-9b-chat"
+#
+# retriever_config = DenseRetrieverConfig(
+#     model_name_or_path="/data/users/searchgpt/pretrained_models/bge-large-zh-v1.5",
+#     dim=1024,
+#     index_path='/data/users/searchgpt/yq/TrustRAG/examples/retrievers/dense_cache'
+# )
+# rerank_config = BgeRerankerConfig(
+#     model_name_or_path="/data/users/searchgpt/pretrained_models/bge-reranker-large"
+# )
+
 app_config.docs_path = "/data/users/searchgpt/yq/trustrag/data/docs/"
 app_config.llm_model_path = "/data/users/searchgpt/pretrained_models/glm-4-9b-chat"
 
 retriever_config = DenseRetrieverConfig(
-    model_name_or_path="/data/users/searchgpt/pretrained_models/bge-large-zh-v1.5",
+    model_name_or_path=r"H:\pretrained_models\mteb\bge-large-zh-v1.5",
     dim=1024,
-    index_path='/data/users/searchgpt/yq/TrustRAG/examples/retrievers/dense_cache'
+    index_path=r'H:\Projects\TrustRAG\examples\retrievers\dense_cache'
 )
 rerank_config = BgeRerankerConfig(
-    model_name_or_path="/data/users/searchgpt/pretrained_models/bge-reranker-large"
+    model_name_or_path=r"H:\pretrained_models\mteb\bge-reranker-large"
 )
+
 
 app_config.retriever_config = retriever_config
 app_config.rerank_config = rerank_config

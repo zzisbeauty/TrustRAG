@@ -47,7 +47,7 @@ class RagApplication():
                 pass
         print("chunking for paragraphs")
         for paragraphs in all_paragraphs:
-            chunks=self.tc.chunk_sentences(paragraphs, 256)
+            chunks=self.tc.get_chunks(paragraphs, 256)
             all_chunks.extend(chunks)
         self.retriever.build_from_texts(all_chunks)
         print("init_vector_store done! ")

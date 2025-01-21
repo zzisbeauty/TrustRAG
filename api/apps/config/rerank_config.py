@@ -11,4 +11,4 @@
 """
 class RerankConfig():
     model_name_or_path:str="/data/users/searchgpt/pretrained_models/bge-reranker-large"
-    llm_url:str="http://10.208.63.29:8888"
+    llm_url:str="http://10.208.63.29:8891"

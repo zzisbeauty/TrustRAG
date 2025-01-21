@@ -15,6 +15,7 @@ langchain-core
 langchain-text-splitters
 langchain-huggingface
 langchain-openai
+langchain-community
 langsmith
 transformers
 pandas

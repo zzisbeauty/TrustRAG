@@ -70,6 +70,9 @@ class Base(ABC):
 
 
 class DeepSeekChat(Base):
+    """
+    https://platform.deepseek.com/usage
+    """
     def __init__(self, key, model_name="deepseek-chat", base_url="https://api.deepseek.com"):
         if not base_url: base_url="https://api.deepseek.com"
         super().__init__(key, model_name, base_url)
@@ -94,4 +97,21 @@ class MoonshotChat(Base):
 class XinferenceChat(Base):
     def __init__(self, key=None, model_name="", base_url=""):
         key = "xxx"
+        super().__init__(key, model_name, base_url)
+
+class ZhipuChat(Base):
+    """
+    https://www.bigmodel.cn/
+    """
+    def __init__(self, key, model_name="glm-4", base_url="https://open.bigmodel.cn/api/paas/v4/"):
+        if not base_url: base_url="https://open.bigmodel.cn/api/paas/v4/"
+        super().__init__(key, model_name, base_url)
+
+
+class DashScopeChat(Base):
+    """
+    https://dashscope.aliyun.com/
+    """
+    def __init__(self, key, model_name="qwen-plus", base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"):
+        if not base_url: base_url="https://dashscope.aliyuncs.com/compatible-mode/v1"
         super().__init__(key, model_name, base_url)

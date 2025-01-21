@@ -10,47 +10,28 @@
 import gc
 import os
 from typing import List, Dict, Union
-from openai import OpenAI
-import faiss
 import numpy as np
-from FlagEmbedding import FlagModel
+import faiss
 from tqdm import tqdm
-
-from trustrag.modules.retrieval.base import BaseConfig, BaseRetriever
-
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from trustrag.modules.retrieval.embedding import EmbeddingGenerator
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 
 
-class DenseRetrieverConfig(BaseConfig):
-    """
-    Configuration class for Dense Retriever.
-
-    Attributes:
-        model_name (str): Name of the transformer model to be used.
-        dim (int): Dimension of the embeddings.
-        index_path (str): Path to save or load the FAISS index.
-        rebuild_index (bool): Flag to rebuild the index if True.
-    """
-
-    def __init__(
-            self,
-            model_name_or_path='sentence-transformers/all-mpnet-base-v2',
-            dim=768,
-            index_path=None,
-            batch_size=32,
-            api_key=None,
-            base_url=None
-    ):
-        self.model_name = model_name_or_path
-        self.dim = dim
-        self.index_path = index_path
-        self.batch_size = batch_size
-        self.api_key = api_key
-        self.base_url = base_url
+@dataclass
+class DenseRetrieverConfig:
+    """Configuration for Dense Retriever"""
+    model_name_or_path: str
+    dim: int = 768
+    index_path: str = None
+    batch_size: int = 32
+    api_key: str = None
+    base_url: str = None
 
     def validate(self):
-        """Validate Dense configuration parameters."""
-        if not isinstance(self.model_name, str) or not self.model_name:
+        """Validate configuration parameters"""
+        if not isinstance(self.model_name_or_path, str) or not self.model_name_or_path:
             raise ValueError("Model name must be a non-empty string.")
         if not isinstance(self.dim, int) or self.dim <= 0:
             raise ValueError("Dimension must be a positive integer.")
@@ -59,125 +40,98 @@ class DenseRetrieverConfig(BaseConfig):
         print("Dense configuration is valid.")
 
 
-class DenseRetriever(BaseRetriever):
-    """
-        Implements a dense retriever for efficiently searching documents.
+class DenseRetriever:
+    """Dense Retriever for efficient document search using various embedding models"""
 
-        Methods:
-            __init__(config): Initializes the retriever with given configuration.
-            mean_pooling(model_output, attention_mask): Performs mean pooling on model outputs.
-            get_embedding(sentences): Generates embeddings for provided sentences.
-            load_index(index_path): Loads the FAISS index from a file.
-            save_index(): Saves the current FAISS index to a file.
-            add_doc(document_text): Adds a document to the index.
-            build_from_texts(texts): Processes and indexes a list of texts.
-            retrieve(query): Retrieves the top_k documents relevant to the query.
-    """
+    def __init__(self, config: DenseRetrieverConfig, embedding_generator: EmbeddingGenerator):
+        """
+        Initialize the retriever.
 
-    def __init__(self, config):
+        Args:
+            config: DenseRetrieverConfig object containing configuration parameters
+            embedding_generator: Instance of EmbeddingGenerator for creating embeddings
+        """
         self.config = config
-        # self.model = FlagModel(config.model_name)
-        self.client = OpenAI(
-            base_url=config.base_url,  # 替换为你的 API 地址
-            api_key=config.api_key  # 替换为你的 API 密钥
-        )
+        self.config.validate()
+        self.embedding_generator = embedding_generator
+
+        # Initialize FAISS index
         self.index = faiss.IndexFlatIP(config.dim)
-        self.dim = config.dim
-        self.embeddings = []
-        self.documents = []
-        self.num_documents = 0
-        self.index_path = config.index_path
-        self.batch_size = config.batch_size
+        self.documents: List[str] = []
+        self.embeddings: List[np.ndarray] = []
+        self.num_documents: int = 0
 
     def load_index(self, index_path: str = None):
-        """
-        Load the FAISS index from the specified path.
-
-        Args:
-            index_path (str, optional): The path to load the index from. Defaults to self.index_path.
-        """
+        """Load the FAISS index and documents from disk"""
         if index_path is None:
-            index_path = self.index_path
-        # Load the document embeddings and texts from the saved file
-        data = np.load(os.path.join(index_path, 'document.vecstore.npz'), allow_pickle=True)
-        self.documents, self.embeddings = data['documents'].tolist(), data['embeddings'].tolist()
-        # Load the FAISS index
-        self.index = faiss.read_index(os.path.join(index_path, 'fassis.index'))
-        print("Index loaded successfully from", index_path)
-        del data  # Free up memory
-        gc.collect()  # Perform garbage collection
+            index_path = self.config.index_path
+
+        try:
+            # Load document data
+            data = np.load(os.path.join(index_path, 'document.vecstore.npz'), allow_pickle=True)
+            self.documents, self.embeddings = data['documents'].tolist(), data['embeddings'].tolist()
+
+            # Load FAISS index
+            self.index = faiss.read_index(os.path.join(index_path, 'faiss.index'))
+            print(f"Index loaded successfully from {index_path}")
+
+            # Cleanup
+            del data
+            gc.collect()
+
+        except Exception as e:
+            raise RuntimeError(f"Failed to load index from {index_path}: {str(e)}")
 
     def save_index(self, index_path: str = None):
-        """
-        Save the FAISS index to the specified path.
+        """Save the FAISS index and documents to disk"""
+        if not self.index or not self.embeddings or not self.documents:
+            raise ValueError("No index data to save")
 
-        Args:
-            index_path (str, optional): The path to save the index to. Defaults to self.index_path.
-        """
-        if self.index and self.embeddings and self.documents:
-            if index_path is None:
-                index_path = self.index_path
-            # Create the directory if it doesn't exist
-            if not os.path.exists(index_path):
-                os.makedirs(index_path, exist_ok=True)
-                print(f"Index saving to：{index_path}")
-            # Save the document embeddings and texts
+        if index_path is None:
+            index_path = self.config.index_path
+
+        try:
+            # Create directory if needed
+            os.makedirs(index_path, exist_ok=True)
+            print(f"Saving index to: {index_path}")
+
+            # Save document data
             np.savez(
                 os.path.join(index_path, 'document.vecstore'),
                 embeddings=self.embeddings,
                 documents=self.documents
             )
-            # Save the FAISS index
-            faiss.write_index(self.index, os.path.join(index_path, 'fassis.index'))
-            print("Index saved successfully to", index_path)
 
-    def get_embedding(self, sentences: List[str]) -> np.ndarray:
-        """
-        Generate embeddings for a list of sentences.
+            # Save FAISS index
+            faiss.write_index(self.index, os.path.join(index_path, 'faiss.index'))
+            print(f"Index saved successfully to {index_path}")
 
-        Args:
-            sentences (List[str]): List of sentences to generate embeddings for.
-
-        Returns:
-            np.ndarray: A numpy array of embeddings.
-        """
-        # Using configured batch_size
-        # return self.model.encode(sentences=sentences, batch_size=self.batch_size)
-
-        # 防止chunk为空字符串
-        sentences = [sentence if sentence else "This is a none string." for sentence in sentences]
-
-        response = self.client.embeddings.create(
-            input=sentences,
-            model=self.config.model_name
-        )
-        embedding = [np.array(item.embedding) for item in response.data]
-        # 提取嵌入向量
-        embedding = np.array(embedding)
-        return embedding
+        except Exception as e:
+            raise RuntimeError(f"Failed to save index to {index_path}: {str(e)}")
 
     def add_texts(self, texts: List[str]):
         """
         Add multiple texts to the index.
 
         Args:
-            texts (List[str]): List of texts to add to the index.
+            texts: List of texts to add
         """
-        embeddings = self.get_embedding(texts)
-        # Convert embeddings to float32 (required by FAISS)
-        # faiss issue:https://github.com/facebookresearch/faiss/issues/1732
-        self.index.add(embeddings.astype("float32"))
-        self.documents.extend(texts)  # Add texts to the documents list
-        self.embeddings.extend(embeddings)  # Add embeddings to the embeddings list
-        self.num_documents += len(texts)  # Update the document count
+        # Handle empty texts
+        texts = [text if text else "Empty document" for text in texts]
+
+        # Generate embeddings using the embedding generator
+        embeddings = self.embedding_generator.generate_embeddings(texts)
+
+        # Add to FAISS index
+        self.index.add(embeddings.astype('float32'))
+
+        # Update internal storage
+        self.documents.extend(texts)
+        self.embeddings.extend(embeddings)
+        self.num_documents += len(texts)
 
     def add_text(self, text: str):
-        """
-        Add a single text to the index.
-
-        Args:
-            text (str): The text to add to the index.
-        """
+        """Add a single text to the index"""
         self.add_texts([text])
 
     def build_from_texts(self, corpus: List[str]):
@@ -185,32 +139,63 @@ class DenseRetriever(BaseRetriever):
         Process and index a list of texts in batches.
 
         Args:
-            corpus (List[str]): List of texts to index.
+            corpus: List of texts to index
         """
         if not corpus:
             return
 
-        # Process texts in batches
-        for i in tqdm(range(0, len(corpus), self.batch_size), desc="Building index"):
-            batch = corpus[i:i + self.batch_size]
+        for i in tqdm(range(0, len(corpus), self.config.batch_size), desc="Building index"):
+            batch = corpus[i:i + self.config.batch_size]
             self.add_texts(batch)
 
-    def retrieve(self, query: str = None, top_k: int = 5) -> List[Dict[str, Union[str, float]]]:
+    def retrieve(self, query: str, top_k: int = 5) -> List[Dict[str, Union[str, float]]]:
         """
         Retrieve the top_k documents relevant to the query.
 
         Args:
-            query (str, optional): The query string. Defaults to None.
-            top_k (int, optional): The number of top documents to retrieve. Defaults to 5.
+            query: Query string
+            top_k: Number of documents to retrieve
 
         Returns:
-            List[Dict[str, Union[str, float]]]: A list of dictionaries containing the retrieved documents and their scores.
+            List of dictionaries containing retrieved documents and their scores
         """
-        # generate query embedding
-        query_embedding = self.get_embedding([query]).astype("float32")
-        # search the index
-        D, I = self.index.search(query_embedding, top_k)
-        # free up memory
-        del query_embedding
-        # Return the retrieved documents with their scores
-        return [{'text': self.documents[idx], 'score': score} for idx, score in zip(I[0], D[0])]
+        # Generate query embedding
+        query_embedding = self.embedding_generator.generate_embedding(query).astype('float32').reshape(1, -1)
+
+        # Search index
+        scores, indices = self.index.search(query_embedding, top_k)
+
+        # Create results
+        results = [
+            {'text': self.documents[idx], 'score': score}
+            for idx, score in zip(indices[0], scores[0])
+        ]
+
+        return results
+
+
+# Example usage:
+"""
+# Initialize with OpenAI embeddings
+config = DenseRetrieverConfig(
+    model_name_or_path="text-embedding-3-large",
+    dim=3072,
+    index_path="path/to/index"
+)
+embedding_generator = OpenAIEmbedding(api_key="your-key", base_url="your-url", model=config.model_name_or_path)
+retriever = DenseRetriever(config, embedding_generator)
+
+# Initialize with FlagModel embeddings
+config = DenseRetrieverConfig(
+    model_name="BAAI/bge-base-en-v1.5",
+    dim=768,
+    index_path="path/to/index"
+)
+embedding_generator = FlagModelEmbedding(model_name=config.model_name)
+retriever = DenseRetriever(config, embedding_generator)
+
+# Use the retriever
+texts = ["document1", "document2", "document3"]
+retriever.build_from_texts(texts)
+results = retriever.retrieve("query", top_k=2)
+"""

@@ -65,3 +65,4 @@ duckduckgo-search
 qdrant-client
 qdrant-client[fastembed]
 pymilvus
+chromadb

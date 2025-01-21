@@ -22,7 +22,7 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 @dataclass
 class DenseRetrieverConfig:
     """Configuration for Dense Retriever"""
-    model_name: str
+    model_name_or_path: str
     dim: int = 768
     index_path: str = None
     batch_size: int = 32
@@ -31,7 +31,7 @@ class DenseRetrieverConfig:
 
     def validate(self):
         """Validate configuration parameters"""
-        if not isinstance(self.model_name, str) or not self.model_name:
+        if not isinstance(self.model_name_or_path, str) or not self.model_name_or_path:
             raise ValueError("Model name must be a non-empty string.")
         if not isinstance(self.dim, int) or self.dim <= 0:
             raise ValueError("Dimension must be a positive integer.")
@@ -178,11 +178,11 @@ class DenseRetriever:
 """
 # Initialize with OpenAI embeddings
 config = DenseRetrieverConfig(
-    model_name="text-embedding-3-large",
+    model_name_or_path="text-embedding-3-large",
     dim=3072,
     index_path="path/to/index"
 )
-embedding_generator = OpenAIEmbedding(api_key="your-key", base_url="your-url", model=config.model_name)
+embedding_generator = OpenAIEmbedding(api_key="your-key", base_url="your-url", model=config.model_name_or_path)
 retriever = DenseRetriever(config, embedding_generator)
 
 # Initialize with FlagModel embeddings

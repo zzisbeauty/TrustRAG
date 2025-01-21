@@ -150,10 +150,11 @@ class FlagModelEmbedding(EmbeddingGenerator):
         self.model = FlagAutoModel.from_finetuned(
             model_name,
             query_instruction_for_retrieval=query_instruction,
-            use_fp16=use_fp16
+            use_fp16=use_fp16,
+            devices=self.device
         )
-        if self.device == "cuda":
-            self.model.to(device)
+        # if self.device == "cuda":
+        #     self.model.to(device)
 
     def generate_embeddings(self, texts: List[str]) -> np.ndarray:
         """

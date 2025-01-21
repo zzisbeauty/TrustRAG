@@ -33,8 +33,8 @@ app_config = ApplicationConfig()
 #     model_name_or_path="/data/users/searchgpt/pretrained_models/bge-reranker-large"
 # )
 
-app_config.docs_path = "/data/users/searchgpt/yq/trustrag/data/docs/"
-app_config.llm_model_path = "/data/users/searchgpt/pretrained_models/glm-4-9b-chat"
+app_config.docs_path = r"H:\Projects\TrustRAG\data\docs"
+app_config.llm_model_path = r"H:\pretrained_models\llm\glm-4-9b-chat"
 
 retriever_config = DenseRetrieverConfig(
     model_name_or_path=r"H:\pretrained_models\mteb\bge-large-zh-v1.5",
@@ -107,7 +107,7 @@ def predict(input,
         web_content = ''
     search_text = ''
     if use_pattern == '模型问答':
-        result = application.get_llm_answer(query=input, web_content=web_content)
+        result = application.chat(query=input, web_content=web_content)
         history.append((input, result))
         search_text += web_content
         return '', history, history, search_text

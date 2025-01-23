@@ -1,7 +1,7 @@
 from openai import OpenAI
 
 client = OpenAI(
-    api_key="68fc6a2610724f82904b90fbd364e3cc.k0AZpx3DyOtgMZY4",
+    api_key="zhipu_key",
     base_url="https://open.bigmodel.cn/api/paas/v4/"
 )
 

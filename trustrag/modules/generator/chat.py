@@ -27,7 +27,7 @@ class Base(ABC):
         self.client = OpenAI(api_key=key, base_url=base_url)
         self.model_name = model_name
 
-    def chat(self, system, history, gen_conf):
+    def chat(self, system, history, gen_conf={}):
         if system:
             history.insert(0, {"role": "system", "content": system})
         try:
@@ -80,6 +80,11 @@ class DeepSeekChat(Base):
 class GPT_4o_up(Base):
     def __init__(self, key, model_name="gpt-4o", base_url="https://api.openai-up.com/v1"):
         if not base_url: base_url="https://api.openai-up.com/v1"
+        super().__init__(key, model_name, base_url)
+
+class GPT4_DMXAPI(Base):
+    def __init__(self, key, model_name="gpt-4o-all", base_url="https://www.dmxapi.com/v1"):
+        if not base_url: base_url="https://www.dmxapi.com/v1"
         super().__init__(key, model_name, base_url)
 
 class GptTurbo(Base):

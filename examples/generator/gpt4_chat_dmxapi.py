@@ -1,9 +1,9 @@
-from trustrag.modules.generator.chat import DeepSeekChat
+from trustrag.modules.generator.chat import GPT4_DMXAPI
 
 if __name__ == '__main__':
 
-    api_key = "sk-04031f18c05a4dd5a561d33d984ca40f"  # 替换为你的 DeepSeek API Key
-    deepseek_chat = DeepSeekChat(key=api_key)
+    api_key = "sk-xxxx"  # 替换为你的 DeepSeek API Key
+    gpt4_chat = GPT4_DMXAPI(key=api_key)
 
     system_prompt = "You are a helpful assistant."
     history = [
@@ -16,13 +16,13 @@ if __name__ == '__main__':
 
     # 调用 chat 方法进行对话
 
-    response, total_tokens = deepseek_chat.chat(system=system_prompt, history=history, gen_conf=gen_conf)
+    response, total_tokens = gpt4_chat.chat(system=system_prompt, history=history, gen_conf=gen_conf)
     print("Response:", response)
     print("Total Tokens:", total_tokens)
 
     # 调用 chat_streamly 方法进行流式对话
 
-    for response in deepseek_chat.chat_streamly(system=system_prompt, history=history, gen_conf=gen_conf):
+    for response in gpt4_chat.chat_streamly(system=system_prompt, history=history, gen_conf=gen_conf):
         if isinstance(response, str):
             print("Stream Response:", response)
         else:

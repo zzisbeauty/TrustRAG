@@ -93,3 +93,5 @@ if __name__ == '__main__':
         limit=5
     )
     print(results)
+    for result in results:
+        print(result)

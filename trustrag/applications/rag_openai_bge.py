@@ -8,7 +8,7 @@
 @contact: yanqiangmiffy@gamil.com
 """
 import os
-
+import loguru
 from api.apps.core.rewrite.views import rewrite
 from trustrag.modules.citation.match_citation import MatchCitation
 from trustrag.modules.document.common_parser import CommonParser
@@ -21,6 +21,7 @@ from trustrag.modules.reranker.bge_reranker import BgeReranker
 from trustrag.modules.retrieval.dense_retriever import DenseRetriever
 from trustrag.modules.document.chunk import TextChunker
 from trustrag.modules.retrieval.embedding import FlagModelEmbedding
+from  trustrag.modules.retrieval.web_retriever import DuckduckSearcher
 class ApplicationConfig():
     def __init__(self):
         self.retriever_config = None
@@ -41,6 +42,7 @@ class RagApplication():
         self.llm_judger = LLMJudger(api_key=self.config.key)
         self.mc = MatchCitation()
         self.tc=TextChunker()
+        self.web_searcher=DuckduckSearcher(proxy=None, timeout=20)
     def init_vector_store(self):
         """
         """
@@ -73,32 +75,35 @@ class RagApplication():
 
     def chat(self, question: str = '', top_k: int = 5):
         rewrite_query=self.llm_rewriter.rewrite(question)
+        rewrite_query="\n".join(f"{i+1}. {query.strip()};" for i, query in enumerate(rewrite_query.split(";")))
+        loguru.logger.info("Query Rewrite Results:"+rewrite_query)
         contents = self.retriever.retrieve(query=question, top_k=top_k)
-
         contents = self.reranker.rerank(query=question, documents=[content['text'] for content in contents])
         documents=[content['text'] for content in contents]
         labels=self.llm_judger.judge(question,documents=documents)
+        loguru.logger.info("Useful Judge Results:")
         for content,label in zip(contents,labels):
             content['label']=label
-        print(contents)
+        loguru.logger.info(contents)
 
 
-        content = ""
+        context_content = ""
         for idx, item in enumerate(contents):
-            content += f"[{idx + 1}] {item['text']}\n"
-        user_input=PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=question, context=content)
-        print("用户请求：\n",user_input)
-
+            print(idx+1)
+            context_content=context_content+ str(idx + 1)+"."+item['text']+"\n"
+        print(context_content)
+        user_input=PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=question, context=context_content)
+        loguru.logger.info("User Request：\n"+user_input)
 
         history = [
             {"role": "user", "content": user_input}
         ]
         result, history = self.llm.chat(system=self.system_prompt, history=history,gen_conf={"temperature": 0.3})
-        result = self.mc.ground_response(
-            question=question,
-            response=result,
-            evidences=[content['text'] for content in contents],
-            selected_idx=[idx for idx in range(len(contents))],
-            markdown=True
-        )
+        # result = self.mc.ground_response(
+        #     question=question,
+        #     response=result,
+        #     evidences=[content['text'] for content in contents],
+        #     selected_idx=[idx for idx in range(len(contents))],
+        #     markdown=True
+        # )
         return result, history, contents,rewrite_query

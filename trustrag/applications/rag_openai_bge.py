@@ -22,6 +22,8 @@ from trustrag.modules.retrieval.dense_retriever import DenseRetriever
 from trustrag.modules.document.chunk import TextChunker
 from trustrag.modules.retrieval.embedding import FlagModelEmbedding
 from  trustrag.modules.retrieval.web_retriever import DuckduckSearcher
+from trustrag.modules.chunks.sentence_chunk import SentenceChunker
+
 class ApplicationConfig():
     def __init__(self):
         self.retriever_config = None
@@ -47,6 +49,8 @@ class RagApplication():
         """
         """
         print("init_vector_store ... ")
+        if not os.path.exists(self.config.docs_path):
+            os.makedirs(self.config.docs_path)
         all_paragraphs = []
         all_chunks = []
         for filename in os.listdir(self.config.docs_path):
@@ -68,16 +72,28 @@ class RagApplication():
         self.retriever.load_index(self.config.retriever_config.index_path)
 
     def add_document(self, file_path):
-        chunks = self.parser.parse(file_path)
-        for chunk in chunks:
-            self.retriever.add_text(chunk)
-        print("add_document done!")
-
+        try:
+            chunks = self.parser.parse(file_path)
+            for chunk in chunks:
+                self.retriever.add_text(chunk)
+            print("add_document done!")
+            response={
+                "detail":file_path,
+                "status":"completed",
+            }
+        except Exception as e:
+            response = {
+                "detail": file_path,
+                "status": "failed",
+            }
+        return response
     def chat(self, question: str = '', top_k: int = 5):
         rewrite_query=self.llm_rewriter.rewrite(question)
         rewrite_query="\n".join(f"{i+1}. {query.strip()};" for i, query in enumerate(rewrite_query.split(";")))
         loguru.logger.info("Query Rewrite Results:"+rewrite_query)
         contents = self.retriever.retrieve(query=question, top_k=top_k)
+        loguru.logger.info("Retrieve Results：")
+        loguru.logger.info(contents)
         contents = self.reranker.rerank(query=question, documents=[content['text'] for content in contents])
         documents=[content['text'] for content in contents]
         labels=self.llm_judger.judge(question,documents=documents)

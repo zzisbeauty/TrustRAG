@@ -9,15 +9,17 @@
 """
 import os
 import shutil
-
+import time
 import gradio as gr
 import loguru
 import pandas as pd
+from anyio import value
 
 from trustrag.applications.rag_openai_bge import RagApplication, ApplicationConfig
 from trustrag.modules.reranker.bge_reranker import BgeRerankerConfig
 from trustrag.modules.retrieval.dense_retriever import DenseRetrieverConfig
-
+from datetime import datetime
+import pytz
 # ========================== Config Start====================
 app_config = ApplicationConfig()
 app_config.docs_path = r"H:\Projects\TrustRAG\data\docs"
@@ -38,12 +40,46 @@ application.init_vector_store()
 # ========================== Config End====================
 
 
+# 创建北京时区的变量
+beijing_tz = pytz.timezone("Asia/Shanghai")
+IGNORE_FILE_LIST = [".DS_Store"]
+
+
+class CustomUploadFile:
+    def __init__(self, file):  # 修改构造函数接收 gradio 文件对象
+        self.file = file  # 保存整个文件对象
+        self.file_name = os.path.basename(file.name)
+        self.start_time = datetime.now(beijing_tz)
+        self.end_time = None
+        self.duration = None
+        self.state = None
+        self.finished = False
+
+    def update_process_duration(self):
+        if not self.finished:
+            self.end_time = datetime.now(beijing_tz)
+            self.duration = (self.end_time - self.start_time).total_seconds()
+            return self.duration
+
+    def update_state(self, state):
+        self.state = state
+
+    def is_finished(self):
+        self.finished = True
+
+    def __info__(self):
+        return [
+            self.start_time.strftime("%Y-%m-%d %H:%M:%S"),
+            self.end_time.strftime("%Y-%m-%d %H:%M:%S"),
+            self.duration,
+            self.state,
+        ]
+
+
 def upload_files(
         upload_files,
         chunk_size,
         chunk_overlap,
-        enable_multimodal,
-        enable_mandatory_ocr,
         upload_index,
 ):
     if not upload_files:
@@ -56,37 +92,73 @@ def upload_files(
         ]
     for state_info in upload_knowledge(
             upload_files=upload_files,
-            oss_path=None,
             chunk_size=chunk_size,
             chunk_overlap=chunk_overlap,
-            enable_multimodal=enable_multimodal,
-            enable_mandatory_ocr=enable_mandatory_ocr,
             index_name=upload_index,
     ):
         yield state_info
+
 def upload_knowledge(
         upload_files,
-        oss_path,
         chunk_size,
         chunk_overlap,
-        enable_multimodal,
-        enable_mandatory_ocr,
-        index_name,
-        from_oss: bool = False,
+        index_name
 ):
-    upload_result = "Upload success."
-    error_msg = "Error"
-    if error_msg:
-        upload_result = f"Upload failed: {error_msg}"
-    result = []
+    my_upload_files = []
+
+    # 处理上传的文件
+    for file in upload_files:
+        if os.path.basename(file.name) not in IGNORE_FILE_LIST:
+            my_upload_files.append(CustomUploadFile(file))
+
+    result = {"Info": ["StartTime", "EndTime", "Duration(s)", "Status"]}
+    error_msg = None
+    success_msg = None
+
+    while True:
+        for file in my_upload_files:
+            try:
+                cache_base_dir = app_config.docs_path
+                if not os.path.exists(cache_base_dir):
+                    os.makedirs(cache_base_dir)  # 使用 makedirs 替代 mkdir
+
+                # 使用正确的源文件路径
+                source_path = file.file.name  # 使用 gradio 上传文件的临时路径
+                dest_path = os.path.join(cache_base_dir, file.file_name)  # 使用 os.path.join 构建路径
+                # 复制文件而不是移动，因为我们在处理临时文件
+                shutil.copy2(source_path, dest_path)
+                # 添加文档
+                response = application.add_document(dest_path)
+                file.update_state(response["status"])
+                file.update_process_duration()
+                result[file.file_name] = file.__info__()
+
+                if response["status"] in ["completed", "failed"]:
+                    file.is_finished()
+                if response["detail"]:
+                    success_msg = response["detail"]
+
+            except Exception as api_error:
+                error_msg = str(api_error)
+                file.update_state("failed")
+                file.is_finished()
+                result[file.file_name] = file.__info__()
+
+        yield [
+            gr.update(visible=True, value=pd.DataFrame(result)),
+            gr.update(visible=False),
+        ]
+
+        if all(file.finished for file in my_upload_files):
+            break
+
+        time.sleep(2)
+
+    upload_result = f"Upload success:{success_msg}" if not error_msg else f"Upload failed: {error_msg}"
     yield [
         gr.update(visible=True, value=pd.DataFrame(result)),
-        gr.update(
-            visible=True,
-            value=upload_result,
-        ),
+        gr.update(visible=True, value=upload_result),
     ]
-
 
 def clear_files():
     yield [
@@ -94,6 +166,105 @@ def clear_files():
         gr.update(visible=False, value=""),
     ]
 
+
+def get_file_info(file_path):
+    """Get detailed information about a file"""
+    stats = os.stat(file_path)
+    creation_time = datetime.fromtimestamp(stats.st_ctime, beijing_tz)
+    modified_time = datetime.fromtimestamp(stats.st_mtime, beijing_tz)
+
+    return {
+        "Filename": os.path.basename(file_path),
+        "Size(KB)": round(stats.st_size / 1024, 2),
+        "CreateTime": creation_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "UpdateTime": modified_time.strftime("%Y-%m-%d %H:%M:%S"),
+        "FileType": os.path.splitext(file_path)[1].lower()
+    }
+
+
+def list_documents():
+    """List all documents in the docs directory"""
+    if not os.path.exists(app_config.docs_path):
+        return pd.DataFrame()
+
+    files_info = []
+    for file_name in os.listdir(app_config.docs_path):
+        if file_name not in IGNORE_FILE_LIST:
+            file_path = os.path.join(app_config.docs_path, file_name)
+            if os.path.isfile(file_path):
+                files_info.append(get_file_info(file_path))
+
+    return pd.DataFrame(files_info)
+
+def refresh_file_list():
+    return gr.update(value=list_documents())
+
+
+
+
+
+def on_select(evt: gr.SelectData, delete_btn_visibility):
+    """Handle row selection event"""
+    return gr.update(visible=True)
+
+def delete_selected_file(selected_file_name):
+    """Delete the selected file and return updated file list"""
+    if not selected_file_name:
+        gr.Info("Please select a file first")
+        return gr.update(value=list_documents()), gr.update(visible=False)
+
+    try:
+        file_path = os.path.join(app_config.docs_path, selected_file_name)
+        if os.path.exists(file_path):
+            gr.Info(f"Successfully deleted file and rebuild faiss index: {selected_file_name}")
+            os.remove(file_path)
+            application.init_vector_store()
+            return gr.update(value=list_documents()), gr.update(visible=False)
+        else:
+            gr.Warning(f"File not found: {selected_file_name}")
+            return gr.update(value=list_documents()), gr.update(visible=False)
+    except Exception as e:
+        gr.Error(f"Error deleting file: {str(e)}")
+        return gr.update(value=list_documents()), gr.update(visible=False)
+
+
+def get_file_chunks(file_path, chunk_size):
+    """Get chunks from a file and return as a DataFrame"""
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        chunks = application.tc.get_chunks([content],chunk_size)
+
+        # Create DataFrame with chunk information
+        chunks_data = []
+        for idx, chunk in enumerate(chunks, 1):
+            chunks_data.append({
+                "Chunk ID": idx,
+                "Content": chunk,
+                "Length": len(chunk)
+            })
+
+        return pd.DataFrame(chunks_data)
+    except Exception as e:
+        print(f"Error reading file: {str(e)}")
+        return pd.DataFrame()
+
+
+def on_file_select(files_df, chunk_size, evt: gr.SelectData):
+    """Handle file selection event"""
+    if not evt.value:
+        return None, None, gr.update(visible=False), pd.DataFrame()
+
+    try:
+        selected_filename = files_df.to_dict('records')[evt.index[0]]['Filename']
+        file_path = os.path.join(app_config.docs_path, selected_filename)
+
+        # Get chunks information
+        chunks_df = get_file_chunks(file_path, chunk_size)
+
+        return selected_filename, f"Selected file: {selected_filename}", gr.update(visible=True), gr.update(visible=True,value=chunks_df)
+    except (KeyError, IndexError):
+        return None, None, gr.update(visible=False), pd.DataFrame()
 
 def clear_session():
     return '', None
@@ -173,6 +344,7 @@ def predict(question,
 
 with gr.Blocks(theme="soft") as demo:
     gr.Markdown("""<h1><center>TrustRAG Studio</center></h1><center><font size=3></center></font>""")
+    # ===== tab start
     with gr.Tab("\N{rocket} Corpus"):
         with gr.Row():
             with gr.Column(scale=2):
@@ -209,8 +381,41 @@ with gr.Blocks(theme="soft") as demo:
                     elem_id="enable_Decontextualization",
                     visible=True,
                 )
-
             with gr.Column(scale=8):
+                selected_file = gr.State(None)
+
+                files_df = gr.DataFrame(
+                    value=list_documents(),
+                    label="Current Documents",
+                    interactive=False,
+                )
+                selected_file_info = gr.Markdown(visible=True)
+                with gr.Row():
+                    refresh_btn = gr.Button("Refresh Files List")
+                    delete_btn = gr.Button("Delete Selected File", visible=False)  # Initially hidden delete button
+                with gr.Row():
+                    # Add chunks display DataFrame
+                    chunks_display = gr.DataFrame(
+                            label="Document Chunks",
+                            value=pd.DataFrame(),
+                            visible=False,
+                            interactive=False
+                    )
+
+                refresh_btn.click(fn=refresh_file_list, outputs=[files_df])
+                files_df.select(
+                    fn=on_file_select,
+                    inputs=[files_df, chunk_size],
+                    outputs=[selected_file, selected_file_info, delete_btn, chunks_display]
+                )
+
+                # Handle file deletion
+                delete_btn.click(
+                    fn=delete_selected_file,
+                    inputs=[selected_file],
+                    outputs=[files_df, delete_btn]
+                )
+
                 with gr.Tab("Files"):
                     upload_file = gr.File(
                         label="Upload a knowledge file.", file_count="multiple"
@@ -251,7 +456,6 @@ with gr.Blocks(theme="soft") as demo:
                     fn=upload_knowledge,
                     inputs=[
                         upload_file_dir,
-                        dummy_component,
                         chunk_size,
                         chunk_overlap,
                         upload_index,
@@ -330,7 +534,7 @@ with gr.Blocks(theme="soft") as demo:
                     send = gr.Button("🚀 Send")
                 with gr.Row():
                     gr.Markdown(
-                        """Remind：[TrustRAG Application](https://github.com/TrustRAG-community/TrustRAG)If you have any questions, please provide feedback in [Github Issue区](https://github.com/TrustRAG-community/TrustRAG) . <br>""")
+                        """>Remind：[TrustRAG Application](https://github.com/TrustRAG-community/TrustRAG)If you have any questions, please provide feedback in [Github Issue区](https://github.com/TrustRAG-community/TrustRAG) .""")
             with gr.Column(scale=2):
                 with gr.Row():
                     rewrite = gr.Textbox(label='Query Reformulate')
@@ -372,6 +576,7 @@ with gr.Blocks(theme="soft") as demo:
                                state
                            ],
                            outputs=[message, chatbot, state, search, rewrite] + checkbox_outputs)
+    # ====== tab end
 
 demo.queue(concurrency_count=2).launch(
     server_name='0.0.0.0',

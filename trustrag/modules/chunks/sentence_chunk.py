@@ -136,7 +136,7 @@ class SentenceChunker(BaseChunker):
         return chunks
 
 if __name__ == '__main__':
-    with open("../../../data/docs/news.txt","r",encoding="utf-8") as f:
+    with open("../../../data/docs/测试新闻2.txt","r",encoding="utf-8") as f:
         content=f.read()
     tc=SentenceChunker(chunk_size=128)
     chunks = tc.get_chunks([content])

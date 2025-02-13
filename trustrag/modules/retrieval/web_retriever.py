@@ -45,5 +45,6 @@ if __name__ == "__main__":
     searcher = DuckduckSearcher(proxy=None, timeout=20)
     # Search for "python programming"
     results = searcher.retrieve("韩国总统 尹锡悦", top_k=5)
+    print(results)
     # Print the search results
     searcher.print_results(results)

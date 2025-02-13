@@ -17,7 +17,7 @@ langchain-huggingface
 langchain-openai
 langchain-community
 langsmith
-transformers
+transformers==4.46.0
 pandas
 nltk
 sentencepiece
@@ -65,3 +65,4 @@ duckduckgo-search
 qdrant-client
 qdrant-client[fastembed]
 pymilvus
+chromadb

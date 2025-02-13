@@ -90,6 +90,7 @@ class MatchCitation:
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
         except Exception as e:
+            print(json_data)
             output_file = "citation_match.json"
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(json_data, f, ensure_ascii=False, indent=4)

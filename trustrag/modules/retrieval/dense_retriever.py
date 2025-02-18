@@ -22,16 +22,17 @@ os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 @dataclass
 class DenseRetrieverConfig:
     """Configuration for Dense Retriever"""
-    model_name_or_path: str
+    model_name_or_path: str="."
     dim: int = 768
     index_path: str = None
     batch_size: int = 32
     api_key: str = None
     base_url: str = None
+    embedding_model_name: str = None
 
     def validate(self):
         """Validate configuration parameters"""
-        if not isinstance(self.model_name_or_path, str) or not self.model_name_or_path:
+        if not isinstance(self.model_name_or_path, str):
             raise ValueError("Model name must be a non-empty string.")
         if not isinstance(self.dim, int) or self.dim <= 0:
             raise ValueError("Dimension must be a positive integer.")
@@ -121,7 +122,7 @@ class DenseRetriever:
 
         # Generate embeddings using the embedding generator
         embeddings = self.embedding_generator.generate_embeddings(texts)
-
+        # print(embeddings.shape)
         # Add to FAISS index
         self.index.add(embeddings.astype('float32'))
 

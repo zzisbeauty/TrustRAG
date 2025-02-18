@@ -34,13 +34,13 @@ class OpenAIEmbedding(EmbeddingGenerator):
             self,
             api_key: str = None,
             base_url: str = None,
-            model: str = "text-embedding-3-large"
+            embedding_model_name: str = "text-embedding-3-large"
     ):
         self.client = OpenAI(
             api_key=api_key or os.getenv("OPENAI_API_KEY"),
             base_url=base_url or os.getenv("OPENAI_BASE_URL")
         )
-        self.model = model
+        self.model = embedding_model_name
 
     @retry(wait=wait_random_exponential(min=1, max=20), stop=stop_after_attempt(6))
     def generate_embeddings(self, texts: List[str]) -> np.ndarray:

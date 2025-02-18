@@ -1,4 +1,4 @@
-from trustrag.modules.generator.chat import GPT4_DMXAPI
+from trustrag.modules.generator.chat import OpenAIChat
 
 DEFAULT_SYSTEM_PROMPT='''你是一名智能评估助手，专门判断检索到的文档是否能够有效回答用户的问题。'''
 DEFAULT_REWRITE_PROMPT='''
@@ -21,9 +21,9 @@ from typing import List
 
 
 class LLMJudger():
-    def __init__(self, api_key=None, system_prompt=DEFAULT_SYSTEM_PROMPT, rewrite_prompt=DEFAULT_REWRITE_PROMPT):
+    def __init__(self, api_key=None,base_url=None,model_name=None, system_prompt=DEFAULT_SYSTEM_PROMPT, rewrite_prompt=DEFAULT_REWRITE_PROMPT):
         self.api_key = api_key
-        self.chat = GPT4_DMXAPI(key=api_key)
+        self.chat = OpenAIChat(key=api_key,base_url=base_url,model_name=model_name)
         self.system_prompt = system_prompt
         self.rewrite_prompt = rewrite_prompt
 

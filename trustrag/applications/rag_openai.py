@@ -6,44 +6,56 @@
 @file: RagApplication.py
 @time: 2024/05/20
 @contact: yanqiangmiffy@gamil.com
-@description:use openai etc. llm service demo
 """
 import os
+import loguru
+from api.apps.core.rewrite.views import rewrite
+from trustrag.modules.citation.match_citation import MatchCitation
 from trustrag.modules.document.common_parser import CommonParser
-from trustrag.modules.generator.chat import DeepSeekChat, GPT_4o_up
-# from trustrag.modules.reranker.bge_reranker import BgeReranker
+from trustrag.modules.generator.chat import DeepSeekChat
+from trustrag.modules.generator.chat import GptTurbo, GPT4_DMXAPI,OpenAIChat
+from trustrag.modules.generator.llm import PROMPT_TEMPLATE
+from trustrag.modules.rewriter.llm_rewriter import LLMRewriter
+from trustrag.modules.judger.llm_judger import LLMJudger
+from trustrag.modules.reranker.bge_reranker import BgeReranker
 from trustrag.modules.retrieval.dense_retriever import DenseRetriever
 from trustrag.modules.document.chunk import TextChunker
+from trustrag.modules.retrieval.embedding import FlagModelEmbedding,OpenAIEmbedding
+from  trustrag.modules.retrieval.web_retriever import DuckduckSearcher
+from trustrag.modules.chunks.sentence_chunk import SentenceChunker
 
 class ApplicationConfig():
     def __init__(self):
         self.retriever_config = None
         self.rerank_config = None
-        self.api_key = None
-        self.base_url = None
 
 
 class RagApplication():
     def __init__(self, config):
         self.config = config
         self.parser = CommonParser()
-        self.retriever = DenseRetriever(self.config.retriever_config)
-        # self.reranker = BgeReranker(self.config.rerank_config)
-        self.llm = GPT_4o_up(key=self.config.api_key)
+
+        self.embedding_generator = OpenAIEmbedding(
+            base_url=self.config.retriever_config.base_url,
+            api_key=self.config.retriever_config.api_key,
+            embedding_model_name=self.config.retriever_config.embedding_model_name
+        )
+
+        self.retriever = DenseRetriever(self.config.retriever_config,self.embedding_generator)
+        self.reranker = BgeReranker(self.config.rerank_config)
+        self.llm = OpenAIChat(key=self.config.api_key,model_name=self.config.model_name,base_url=self.config.base_url)
+        self.system_prompt = "你是一个可信可靠的问答助手。"
+        self.llm_rewriter = LLMRewriter(api_key=self.config.api_key)
+        self.llm_judger = LLMJudger(api_key=self.config.api_key)
+        self.mc = MatchCitation()
         self.tc=TextChunker()
-        self.rag_prompt="""请结合参考的上下文内容回答用户问题，如果上下文不能支撑用户问题，那么回答不知道或者我无法根据参考信息回答。
-        问题: {question}
-        可参考的上下文：
-        ···
-        {context}
-        ···
-        如果给定的上下文无法让你做出回答，请回答数据库中没有这个内容，你不知道。
-        有用的回答:"""
+        self.web_searcher=DuckduckSearcher(proxy=None, timeout=20)
     def init_vector_store(self):
         """
-
         """
         print("init_vector_store ... ")
+        if not os.path.exists(self.config.docs_path):
+            os.makedirs(self.config.docs_path)
         all_paragraphs = []
         all_chunks = []
         for filename in os.listdir(self.config.docs_path):
@@ -65,27 +77,54 @@ class RagApplication():
         self.retriever.load_index(self.config.retriever_config.index_path)
 
     def add_document(self, file_path):
-        chunks = self.parser.parse(file_path)
-        for chunk in chunks:
-            self.retriever.add_text(chunk)
-        print("add_document done!")
-
+        try:
+            chunks = self.parser.parse(file_path)
+            for chunk in chunks:
+                self.retriever.add_text(chunk)
+            print("add_document done!")
+            response={
+                "detail":file_path,
+                "status":"completed",
+            }
+        except Exception as e:
+            response = {
+                "detail": file_path,
+                "status": "failed",
+            }
+        return response
     def chat(self, question: str = '', top_k: int = 5):
+        rewrite_query=self.llm_rewriter.rewrite(question)
+        rewrite_query="\n".join(f"{i+1}. {query.strip()};" for i, query in enumerate(rewrite_query.split(";")))
+        loguru.logger.info("Query Rewrite Results:"+rewrite_query)
         contents = self.retriever.retrieve(query=question, top_k=top_k)
-        # contents = self.reranker.rerank(query=question, documents=[content['text'] for content in contents])
-        content = '\n'.join([content['text'] for content in contents])
+        loguru.logger.info("Retrieve Results：")
+        loguru.logger.info(contents)
+        contents = self.reranker.rerank(query=question, documents=[content['text'] for content in contents])
+        documents=[content['text'] for content in contents]
+        labels=self.llm_judger.judge(question,documents=documents)
+        loguru.logger.info("Useful Judge Results:")
+        for content,label in zip(contents,labels):
+            content['label']=label
+        loguru.logger.info(contents)
 
-        system_prompt = "你是一个人工智能助手."
-        prompt = self.rag_prompt.format(system_prompt=system_prompt, question=question,context=content)
+
+        context_content = ""
+        for idx, item in enumerate(contents):
+            print(idx+1)
+            context_content=context_content+ str(idx + 1)+"."+item['text']+"\n"
+        print(context_content)
+        user_input=PROMPT_TEMPLATE['RAG_PROMPT_TEMPALTE'].format(question=question, context=context_content)
+        loguru.logger.info("User Request：\n"+user_input)
+
         history = [
-            {"role": "user", "content": prompt}
+            {"role": "user", "content": user_input}
         ]
-        gen_conf = {
-            "temperature": 0.7,
-            "max_tokens": 100
-        }
-
-        # 调用 chat 方法进行对话
-        result = self.llm.chat(system=system_prompt, history=history, gen_conf=gen_conf)
-        result = result[0]  #result[1]是 total_token，在调用 在线 api 时需要这样处理
-        return result, history, contents
+        result, history = self.llm.chat(system=self.system_prompt, history=history,gen_conf={"temperature": 0.3})
+        # result = self.mc.ground_response(
+        #     question=question,
+        #     response=result,
+        #     evidences=[content['text'] for content in contents],
+        #     selected_idx=[idx for idx in range(len(contents))],
+        #     markdown=True
+        # )
+        return result, history, contents,rewrite_query

@@ -201,12 +201,6 @@ def refresh_file_list():
 
 
 
-
-
-def on_select(evt: gr.SelectData, delete_btn_visibility):
-    """Handle row selection event"""
-    return gr.update(visible=True)
-
 def delete_selected_file(selected_file_name):
     """Delete the selected file and return updated file list"""
     if not selected_file_name:

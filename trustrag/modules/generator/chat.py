@@ -69,6 +69,12 @@ class Base(ABC):
         yield total_tokens
 
 
+
+class OpenAIChat(Base):
+    def __init__(self, key, model_name="gpt-4o", base_url="https://www.dmxapi.com/v1"):
+        if not base_url: base_url="https://www.dmxapi.com/v1"
+        super().__init__(key, model_name, base_url)
+
 class DeepSeekChat(Base):
     """
     https://platform.deepseek.com/usage

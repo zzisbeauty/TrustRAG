@@ -1,4 +1,4 @@
-from trustrag.modules.generator.chat import GPT4_DMXAPI
+from trustrag.modules.generator.chat import OpenAIChat
 
 DEFAULT_SYSTEM_PROMPT='''你是一名搜索优化专家，擅长改写用户查询，使其更适合搜索引擎处理。'''
 DEFAULT_REWRITE_PROMPT='''
@@ -14,9 +14,9 @@ DEFAULT_REWRITE_PROMPT='''
 **扩展后的关键词组：**
 '''
 class LLMRewriter():
-    def __init__(self,api_key=None,system_prompt=DEFAULT_SYSTEM_PROMPT,rewrite_prompt=DEFAULT_REWRITE_PROMPT):
+    def __init__(self,api_key=None,model_name="",base_url=None,system_prompt=DEFAULT_SYSTEM_PROMPT,rewrite_prompt=DEFAULT_REWRITE_PROMPT):
         self.api_key = api_key
-        self.chat = GPT4_DMXAPI(key=api_key)
+        self.chat = OpenAIChat(key=api_key,model_name=model_name,base_url=base_url)
         self.system_prompt = system_prompt
         self.rewrite_prompt = rewrite_prompt
     def rewrite(self, query):

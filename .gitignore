@@ -26,3 +26,7 @@ examples/rag/mobile_rag.py
 **/.ipynb_checkpoints/
 .virtual_documents/
 examples/retrievers/dense_cache
+
+# 
+trustrag.egg-info
+__pycache__

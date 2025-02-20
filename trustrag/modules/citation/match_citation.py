@@ -17,7 +17,8 @@ class MatchCitation:
     def cut(self, para: str):
 
         # 定义结束符号列表
-        end_symbols = ['。', '！', '？', '…', '；', '\n']
+        # end_symbols = ['。', '！', '？', '…', '；', '\n'] # sent
+        end_symbols = ['。', '！', '？', '…', '；', '\n']# para
 
         # 定义引号对
         quote_pairs = {'"': '"', "'": "'", '「': '」', '『': '』'}

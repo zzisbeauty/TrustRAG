@@ -28,7 +28,7 @@ TrustRAG框架的设计核心在于其**高度的可配置性和模块化**，�
 可靠的输入，可信的输出
 
 ## 🎉 更新记录
-
+- 2025.2.18支持全流程openai的应用，具体可见[app.py](app.py)
 - 🔥支持向量数据库引擎，例如Milvus，Qdrant等-`[20250120]`
 - 支持多模态RAG问答，API使用**GLM-4V-Flash**，代码见[trustrag/applications/rag_multimodal.py](trustrag/applications/rag_multimodal.py)
 - TrustRAG 打包构建，支持pip和source两种方式安装
@@ -288,7 +288,9 @@ python app.py
 ```
 
 浏览器访问：[127.0.0.1:7860](127.0.0.1:7860)
-![trustrag_demo.png](resources%2Ftrustrag_demo.png)
+
+![corpus_demo.png](resources%2Fcorpus_demo.png)
+![chat_demo.png](resources%2Fchat_demo.png)
 
 app后台日志：
 ![app_logging3.png](resources%2Fapp_logging3.png)
@@ -316,3 +318,4 @@ app后台日志：
 >本项目感谢以下开源项目的支持与贡献：
 - 文档解析：[infiniflow/ragflow](https://github.com/infiniflow/ragflow/blob/main/deepdoc/README.md)
 - PDF文件解析[opendatalab/MinerU](https://github.com/opendatalab/MinerU)
+

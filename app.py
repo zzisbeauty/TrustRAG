@@ -7,13 +7,14 @@
 @time: 2024/05/21
 @contact: yanqiangmiffy@gamil.com
 """
+import  sys
+sys.path.append(".")
 import os
 import shutil
 import time
 import gradio as gr
 import loguru
 import pandas as pd
-from anyio import value
 
 from trustrag.applications.rag_openai import RagApplication, ApplicationConfig
 from trustrag.modules.reranker.bge_reranker import BgeRerankerConfig
@@ -34,11 +35,11 @@ retriever_config = DenseRetrieverConfig(
     embedding_model_name='text-embedding-3-large',
     index_path=r'H:\Projects\TrustRAG\examples\retrievers\dense_cache'
 )
-rerank_config = BgeRerankerConfig(
-    model_name_or_path=r"H:\pretrained_models\mteb\bge-reranker-large"
-)
+# rerank_config = BgeRerankerConfig(
+#     model_name_or_path=r"H:\pretrained_models\mteb\bge-reranker-large"
+# )
 app_config.retriever_config = retriever_config
-app_config.rerank_config = rerank_config
+# app_config.rerank_config = rerank_config
 application = RagApplication(app_config)
 application.init_vector_store()
 # ========================== Config End====================
@@ -572,7 +573,6 @@ with gr.Blocks(theme="soft") as demo:
                                state
                            ],
                            outputs=[message, chatbot, state, search, rewrite] + checkbox_outputs)
-    # ====== tab end
 
 demo.queue(concurrency_count=2).launch(
     server_name='0.0.0.0',

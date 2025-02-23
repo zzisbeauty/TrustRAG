@@ -17,7 +17,8 @@ class MatchCitation:
     def cut(self, para: str):
 
         # 定义结束符号列表
-        end_symbols = ['。', '！', '？', '…', '；', '\n']
+        # end_symbols = ['。', '！', '？', '…', '；', '\n'] # sent
+        end_symbols = ['。', '！', '？', '…', '；', '\n']# para
 
         # 定义引号对
         quote_pairs = {'"': '"', "'": "'", '「': '」', '『': '』'}
@@ -93,6 +94,7 @@ class MatchCitation:
             print(json_data)
             output_file = "citation_match.json"
             with open(output_file, 'w', encoding='utf-8') as f:
+                loguru.logger.info(json_data)
                 json.dump(json_data, f, ensure_ascii=False, indent=4)
         loguru.logger.info(f"Parameters saved to {output_file}")
         sentences = self.cut(response)

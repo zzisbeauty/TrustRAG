@@ -56,7 +56,8 @@ class Base(ABC):
                 **gen_conf)
             for resp in response:
                 if not resp.choices or not resp.choices[0].delta.content:continue
-                ans += resp.choices[0].delta.content
+                # ans += resp.choices[0].delta.content
+                ans= resp.choices[0].delta.content
                 total_tokens += 1
                 if resp.choices[0].finish_reason == "length":
                     ans += "...\nFor the content length reason, it stopped, continue?" if is_english(

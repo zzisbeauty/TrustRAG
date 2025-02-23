@@ -282,7 +282,9 @@ python app.py
 ```
 
 Access via browser: [127.0.0.1:7860](127.0.0.1:7860)
-![trustrag_demo.png](resources%2Ftrustrag_demo.png)
+
+![corpus_demo.png](resources%2Fcorpus_demo.png)
+![chat_demo.png](resources%2Fchat_demo.png)
 
 App backend logs:
 ![app_logging3.png](resources%2Fapp_logging3.png)

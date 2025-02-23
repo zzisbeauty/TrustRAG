@@ -28,5 +28,5 @@ examples/rag/mobile_rag.py
 examples/retrievers/dense_cache
 
 # 
-trustrag.egg-info
 __pycache__
+trustrag.egg-info
